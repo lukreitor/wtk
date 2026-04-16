@@ -161,11 +161,21 @@ wtk winget list
 # Summary
 wtk gain
 
-# ASCII graph (30 days)
+# ASCII graph (30 days default)
 wtk gain --graph
 
-# Command history
-wtk gain --history
+# Different time periods
+wtk gain --graph -T 7d      # Last week
+wtk gain --graph -T 90d     # Last 3 months
+wtk gain --graph -T all     # All time
+
+# Command history with options
+wtk gain --history          # Last 20 commands, 30 days
+wtk gain --history -T 1d    # Last 24 hours
+wtk gain --history -n 50    # Show 50 entries
+
+# Find missed savings
+wtk discover
 ```
 
 ---
@@ -203,6 +213,7 @@ wtk gain --history
 | `docker` | Containers | 75-85% |
 | `kubectl/helm` | Kubernetes | 70-85% |
 | `terraform` | IaC | 80-90% |
+| `ansible` | Configuration | 75-85% |
 | `az/aws/gcloud` | Cloud CLIs | 75-80% |
 
 ### Windows Native (70-85%)
@@ -226,26 +237,29 @@ wtk gain --history
 ## Gain Graph
 
 ```
-$ wtk gain --graph
+$ wtk gain --graph -T 7d
 
-WTK Token Savings - Last 30 Days
+WTK Token Savings - Last 7 Days
 ════════════════════════════════════════════════════════════
 
- 45.2K │                              ███
-       │                         ████████
-       │                    █████████████
-       │               ██████████████████
-       │          █████████████████████████
-       │     ██████████████████████████████
-       │████████████████████████████████████
-     0 │────────────────────────────────────
-        03-17                          04-16
+ 136.7K │ ████████████████████████████████
+        │ ████████████████████████████████
+ 102.5K │ ████████████████████████████████
+        │ ████████████████████████████████
+  68.3K │ ████████████████████████████████
+        │ ████████████████████████████████
+  34.2K │ ████████████████████████████████
+        │ ████████████████████████████████
+       0│────────────────────────────────
+         04-10                       04-16
 
-Summary
+Summary (Last 7 Days)
 ────────────────────────────────────
-  Total saved:     1.2M
-  Commands:        2,847
-  Avg efficiency:  78.3%
+  Total saved:     136.7K
+  Commands:        23
+  Avg efficiency:  96.8%
+
+Periods: -T 1d | -T 7d | -T 30d | -T 90d | -T 1y | -T all
 ```
 
 ---

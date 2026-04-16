@@ -18,6 +18,8 @@ pub mod rust;
 pub mod golang;
 pub mod python;
 pub mod java;
+pub mod php;
+pub mod cpp;
 
 // DevOps filters
 pub mod docker;
@@ -60,6 +62,8 @@ pub use rust::CargoFilter;
 pub use golang::{GoFilter, GolangciLintFilter};
 pub use python::{PipFilter, PytestFilter, RuffFilter, MypyFilter, PoetryFilter};
 pub use java::{MavenFilter, GradleFilter};
+pub use php::{ComposerFilter, ArtisanFilter, PhpunitFilter, PestFilter};
+pub use cpp::{MakeFilter, CmakeFilter, GccFilter, GppFilter, ClangFilter, NinjaFilter};
 
 // DevOps exports
 pub use docker::{DockerFilter, DockerComposeFilter};

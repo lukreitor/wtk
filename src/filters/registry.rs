@@ -15,6 +15,8 @@ use super::rust::CargoFilter;
 use super::golang::{GoFilter, GolangciLintFilter};
 use super::python::{PipFilter, PytestFilter, RuffFilter, MypyFilter, PoetryFilter};
 use super::java::{MavenFilter, GradleFilter};
+use super::php::{ComposerFilter, ArtisanFilter, PhpunitFilter, PestFilter};
+use super::cpp::{MakeFilter, CmakeFilter, GccFilter, GppFilter, ClangFilter, NinjaFilter};
 
 // DevOps filters
 use super::docker::{DockerFilter, DockerComposeFilter};
@@ -92,6 +94,18 @@ impl FilterRegistry {
             Box::new(PoetryFilter),
             Box::new(MavenFilter),
             Box::new(GradleFilter),
+            // PHP filters
+            Box::new(ComposerFilter),
+            Box::new(ArtisanFilter),
+            Box::new(PhpunitFilter),
+            Box::new(PestFilter),
+            // C/C++ filters
+            Box::new(MakeFilter),
+            Box::new(CmakeFilter),
+            Box::new(GccFilter),
+            Box::new(GppFilter),
+            Box::new(ClangFilter),
+            Box::new(NinjaFilter),
 
             // DevOps filters
             Box::new(DockerFilter),

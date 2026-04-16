@@ -10,7 +10,7 @@
 
 ---
 
-## Current Features (v0.5.0)
+## Current Features (v0.6.0)
 
 ### Filters (50+ categories, 200+ commands)
 
@@ -22,6 +22,8 @@
 | **Go** | go build/test, golangci-lint | Done |
 | **Python** | pip, pytest, ruff, mypy, poetry | Done |
 | **Java** | maven, gradle | Done |
+| **PHP** | composer, artisan, phpunit, pest | Done |
+| **C/C++** | make, cmake, gcc, g++, clang, ninja | Done |
 | **Node.js** | npm, pnpm, yarn, bun, npx | Done |
 | **TypeScript** | tsc | Done |
 | **.NET** | dotnet build/test/run | Done |
@@ -195,6 +197,7 @@ Want to help WTK surpass RTK? Here's how:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| v0.6.0 | 2026-04-16 | **Phase 3 Partial**: +10 tools - PHP (composer, artisan, phpunit, pest), C/C++ (make, cmake, gcc, g++, clang, ninja) |
 | v0.5.0 | 2026-04-16 | **Phase 4 Complete**: +8 database tools (sqlite3, cqlsh, cypher-shell, influx, supabase, pscale, neonctl, turso) |
 | v0.4.0 | 2026-04-16 | **Phase 2 Complete**: +21 DevOps tools (vagrant, packer, pulumi, serverless, PaaS CLIs, K8s ecosystem) |
 | v0.3.0 | 2026-04-16 | **Phase 1 Complete**: 25 CMD commands, 29 PowerShell cmdlets |

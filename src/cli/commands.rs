@@ -81,6 +81,17 @@ pub fn rewrite_command(command: &str) -> Result<()> {
 /// Show token savings statistics.
 pub fn show_gain(options: GainOptions) -> Result<()> {
     let db = TrackingDb::open()?;
+
+    // Handle --graph option
+    if options.graph {
+        return show_gain_graph(&db);
+    }
+
+    // Handle --history option
+    if options.history {
+        return show_gain_history(&db);
+    }
+
     let stats = db.get_statistics()?;
 
     match options.format.as_str() {
@@ -131,6 +142,144 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+/// Show ASCII graph of token savings over 30 days.
+fn show_gain_graph(db: &TrackingDb) -> Result<()> {
+    let daily = db.get_daily_stats(30)?;
+
+    println!();
+    println!("{}", "WTK Token Savings - Last 30 Days".bold());
+    println!("{}", "═".repeat(60));
+    println!();
+
+    if daily.is_empty() {
+        println!("{}", "No data yet. Run some commands through WTK first!".yellow());
+        return Ok(());
+    }
+
+    // Find max saved for scaling
+    let max_saved = daily.iter().map(|d| d.saved_chars).max().unwrap_or(1);
+    let graph_height = 10;
+    let graph_width = daily.len().min(30);
+
+    // Render graph (top to bottom)
+    for row in (0..graph_height).rev() {
+        let threshold = (max_saved as f64 * (row as f64 + 1.0) / graph_height as f64) as usize;
+
+        // Y-axis label
+        if row == graph_height - 1 {
+            print!("{:>6} │", format_tokens(max_saved));
+        } else if row == 0 {
+            print!("{:>6} │", "0");
+        } else {
+            print!("       │");
+        }
+
+        // Bars
+        for day in daily.iter().take(graph_width) {
+            if day.saved_chars >= threshold {
+                print!("{}", "█".green());
+            } else if day.saved_chars >= threshold.saturating_sub(max_saved / graph_height / 2) {
+                print!("{}", "▄".green());
+            } else {
+                print!(" ");
+            }
+        }
+        println!();
+    }
+
+    // X-axis
+    print!("       └");
+    print!("{}", "─".repeat(graph_width));
+    println!();
+
+    // Date labels
+    if let (Some(first), Some(last)) = (daily.first(), daily.last()) {
+        let first_date = &first.date[5..]; // MM-DD
+        let last_date = &last.date[5..];
+        let padding = graph_width.saturating_sub(first_date.len() + last_date.len());
+        println!("        {}{}{}", first_date, " ".repeat(padding), last_date);
+    }
+
+    println!();
+
+    // Summary
+    let total_saved: usize = daily.iter().map(|d| d.saved_chars).sum();
+    let total_commands: usize = daily.iter().map(|d| d.commands).sum();
+    let avg_percent = if !daily.is_empty() {
+        daily.iter().map(|d| d.percent).sum::<f64>() / daily.len() as f64
+    } else {
+        0.0
+    };
+
+    println!("{}", "Summary".bold());
+    println!("{}", "─".repeat(40));
+    println!("  Total saved:     {}", format_tokens(total_saved).bright_green());
+    println!("  Commands:        {}", total_commands.to_string().cyan());
+    println!("  Avg efficiency:  {:.1}%", avg_percent);
+    println!();
+
+    Ok(())
+}
+
+/// Show recent command history.
+fn show_gain_history(db: &TrackingDb) -> Result<()> {
+    let history = db.get_history(20)?;
+
+    println!();
+    println!("{}", "WTK Command History".bold());
+    println!("{}", "═".repeat(70));
+    println!();
+
+    if history.is_empty() {
+        println!("{}", "No commands tracked yet.".yellow());
+        return Ok(());
+    }
+
+    println!(
+        "{:19}  {:30}  {:>8}  {:>6}",
+        "Timestamp".dimmed(),
+        "Command".dimmed(),
+        "Saved".dimmed(),
+        "%".dimmed()
+    );
+    println!("{}", "─".repeat(70));
+
+    for entry in &history {
+        let time = if entry.timestamp.len() > 19 {
+            &entry.timestamp[..19]
+        } else {
+            &entry.timestamp
+        };
+
+        let saved = entry.input_chars.saturating_sub(entry.output_chars);
+        let color = if entry.percent > 70.0 {
+            "green"
+        } else if entry.percent > 40.0 {
+            "yellow"
+        } else {
+            "red"
+        };
+
+        let pct_str = format!("{:.1}%", entry.percent);
+        let pct_colored = match color {
+            "green" => pct_str.green(),
+            "yellow" => pct_str.yellow(),
+            _ => pct_str.red(),
+        };
+
+        println!(
+            "{}  {:30}  {:>8}  {}",
+            time.dimmed(),
+            truncate(&entry.command, 30),
+            format_tokens(saved),
+            pct_colored
+        );
+    }
+
+    println!();
     Ok(())
 }
 

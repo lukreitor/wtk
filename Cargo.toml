@@ -1,6 +1,6 @@
 [package]
 name = "wtk"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["WTK Contributors"]
 description = "Windows Token Killer - CLI proxy that reduces LLM token consumption by 60-90% on Windows"

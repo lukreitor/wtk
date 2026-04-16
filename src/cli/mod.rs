@@ -53,6 +53,10 @@ pub struct GainOptions {
     #[arg(short = 'H', long)]
     pub history: bool,
 
+    /// Show ASCII graph of savings over 30 days
+    #[arg(short, long)]
+    pub graph: bool,
+
     /// Show daily breakdown
     #[arg(short, long)]
     pub daily: bool,

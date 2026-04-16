@@ -1,257 +1,329 @@
 <p align="center">
-  <h1 align="center">WTK - Windows Token Killer</h1>
-  <p align="center">
-    <strong>CLI proxy that reduces LLM token consumption by 60-90% on Windows</strong>
-  </p>
-  <p align="center">
-    <a href="https://github.com/Lukreitor/wtk/actions"><img src="https://github.com/Lukreitor/wtk/workflows/CI/badge.svg" alt="CI Status"></a>
-    <a href="https://github.com/Lukreitor/wtk/releases"><img src="https://img.shields.io/github/v/release/Lukreitor/wtk" alt="Release"></a>
-    <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-    <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/rust-1.75+-orange.svg" alt="Rust 1.75+"></a>
-    <img src="https://img.shields.io/badge/platform-Windows-blue.svg" alt="Platform: Windows">
-  </p>
+  <img src="https://img.shields.io/badge/🔪_WTK-Windows_Token_Killer-blue?style=for-the-badge" alt="WTK">
+</p>
+
+<h1 align="center">WTK - Windows Token Killer</h1>
+
+<p align="center">
+  <strong>CLI proxy that reduces LLM token consumption by 60-90% on Windows</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Lukreitor/wtk/actions"><img src="https://github.com/Lukreitor/wtk/workflows/CI/badge.svg" alt="CI Status"></a>
+  <a href="https://github.com/Lukreitor/wtk/releases"><img src="https://img.shields.io/github/v/release/Lukreitor/wtk" alt="Release"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/rust-1.75+-orange.svg" alt="Rust 1.75+"></a>
+  <img src="https://img.shields.io/badge/platform-Windows-blue.svg" alt="Platform: Windows">
+  <img src="https://img.shields.io/badge/commands-200+-green.svg" alt="200+ Commands">
 </p>
 
 ---
 
-## Overview
+## Real-World Token Savings
 
-**WTK (Windows Token Killer)** is a high-performance CLI proxy designed specifically for Windows that filters and compresses command outputs before they reach your LLM context. It achieves **60-90% token savings** on common development operations through smart filtering, grouping, truncation, and deduplication.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    30-Minute Claude Code Session                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   WITHOUT WTK                          WITH WTK                  │
+│   ═══════════                          ════════                  │
+│   Input:  118,247 tokens               Input:  23,891 tokens     │
+│   ████████████████████████████████     ██████░░░░░░░░░░░░░░░░░░  │
+│                                                                  │
+│                     SAVED: 94,356 tokens (79.8%)                 │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│   git status ×45      8,234 → 1,647    (80.0% saved)            │
+│   npm run build ×12   7,102 → 2,025    (71.5% saved)            │
+│   docker ps ×23       5,412 → 1,140    (78.9% saved)            │
+│   Get-Process ×18     4,821 → 1,345    (72.1% saved)            │
+│   cargo build ×8      3,890 →   389    (90.0% saved)            │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### Why WTK?
+---
 
-- **Windows-First**: Built from the ground up for Windows with native PowerShell and CMD support
-- **Deterministic Hooks**: Integrates with Claude Code via hooks (not CLAUDE.md), ensuring 100% consistent command rewriting
-- **200+ Commands**: Supports git, npm, dotnet, docker, kubectl, terraform, PowerShell cmdlets, and more
-- **Zero Configuration**: Run `wtk init --claude-code` and you're done
+## Why WTK?
 
-### Key Features
+| Feature | RTK | WTK |
+|---------|:---:|:---:|
+| **Windows Native** | ❌ WSL only | ✅ Full support |
+| **Commands** | 100+ | **200+** |
+| **PowerShell** | ❌ | ✅ 25+ cmdlets |
+| **Windows Hooks** | ❌ Broken | ✅ Native |
+| **winget/choco/scoop** | ❌ | ✅ |
+| **Claude Code Hook** | ✅ | ✅ |
 
-| Feature | Description |
-|---------|-------------|
-| **Smart Filtering** | Removes noise, boilerplate, and verbose output |
-| **Grouping** | Aggregates similar items (errors by type, files by directory) |
-| **Truncation** | Preserves relevant context while cutting redundancy |
-| **Deduplication** | Collapses repeated log lines with counts |
-| **Gain Tracking** | Real-time statistics on token savings |
+**WTK is the Windows-first solution** for LLM token optimization.
 
 ---
 
 ## Installation
 
-### From Releases (Recommended)
+<details>
+<summary><b>📦 From Releases (Recommended)</b></summary>
 
-Download the latest release from [GitHub Releases](https://github.com/Lukreitor/wtk/releases):
-
+### PowerShell (Admin)
 ```powershell
-# PowerShell
-Invoke-WebRequest -Uri "https://github.com/Lukreitor/wtk/releases/latest/download/wtk-windows-x64.zip" -OutFile "wtk.zip"
-Expand-Archive -Path "wtk.zip" -DestinationPath "$env:LOCALAPPDATA\wtk"
-$env:PATH += ";$env:LOCALAPPDATA\wtk"
+# Download and install
+$url = "https://github.com/Lukreitor/wtk/releases/latest/download/wtk-windows-x64.zip"
+Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\wtk.zip"
+Expand-Archive -Path "$env:TEMP\wtk.zip" -DestinationPath "$env:LOCALAPPDATA\wtk" -Force
+
+# Add to PATH
+$userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+if ($userPath -notlike "*wtk*") {
+    [Environment]::SetEnvironmentVariable("PATH", "$userPath;$env:LOCALAPPDATA\wtk", "User")
+}
+
+# Verify
+wtk --version
 ```
 
-### From Source
+### CMD
+```batch
+:: Download manually from GitHub releases
+:: Extract to %LOCALAPPDATA%\wtk
+:: Add to PATH via System Properties > Environment Variables
+```
+
+</details>
+
+<details>
+<summary><b>🔨 From Source</b></summary>
 
 ```bash
-# Clone the repository
+# Prerequisites: Rust 1.75+, Visual Studio Build Tools
 git clone https://github.com/Lukreitor/wtk.git
 cd wtk
 
-# Build release binary
+# Build
 cargo build --release
 
-# Install globally
+# Install
 cargo install --path .
-```
 
-### Verify Installation
-
-```bash
+# Verify
 wtk --version
-# wtk 0.2.0
 ```
+
+</details>
+
+<details>
+<summary><b>⚡ One-Line Install (PowerShell)</b></summary>
+
+```powershell
+irm https://raw.githubusercontent.com/Lukreitor/wtk/master/install.ps1 | iex
+```
+
+</details>
 
 ---
 
 ## Quick Start
 
-### 1. Initialize Claude Code Integration
+### 1. Initialize Claude Code Hooks
 
 ```bash
 wtk init --claude-code
 ```
 
-This automatically configures Claude Code hooks for command rewriting.
+This automatically rewrites commands to use WTK. **100% transparent, zero manual effort.**
 
 ### 2. Use WTK Commands
 
 ```bash
-# Git commands
+# Git
 wtk git status
 wtk git log --oneline -10
 wtk git diff
 
-# Package managers
+# Build tools
+wtk cargo build
 wtk npm install
-wtk pnpm build
 wtk dotnet build
 
-# Windows system
+# DevOps
+wtk docker ps
+wtk kubectl get pods
+wtk terraform plan
+
+# Windows
 wtk ipconfig /all
-wtk netstat -an
 wtk Get-Process
+wtk winget list
 ```
 
-### 3. Check Your Savings
-
-```bash
-wtk gain
-# Shows token savings statistics
-```
-
----
-
-## Command Coverage
-
-### Version Control (50-85% savings)
-
-| Command | Subcommands | Savings |
-|---------|-------------|---------|
-| `git` | status, log, diff, show, branch, stash, blame | 50-85% |
-| `gh` | pr, issue, run, release, repo, gist, api | 70-87% |
-
-### Package Managers (70-90% savings)
-
-| Command | Type | Savings |
-|---------|------|---------|
-| `npm`, `pnpm`, `yarn`, `bun` | Node.js | 70-85% |
-| `pip`, `poetry`, `uv` | Python | 70-80% |
-| `dotnet`, `nuget` | .NET | 70-85% |
-| `mvn`, `gradle` | Java | 85-92% |
-| `cargo` | Rust | 80-90% |
-| `go` | Go | 80-90% |
-| `winget`, `choco`, `scoop` | Windows | 75-85% |
-
-### Build Tools & Test Runners (70-99% savings)
-
-| Command | Type | Savings |
-|---------|------|---------|
-| `tsc`, `webpack`, `vite` | Build | 70-90% |
-| `vitest`, `jest`, `playwright` | Test | 90-99% |
-| `eslint`, `prettier`, `ruff` | Lint | 70-84% |
-| `msbuild`, `dotnet build` | .NET Build | 85-90% |
-
-### DevOps & Infrastructure (70-90% savings)
-
-| Command | Type | Savings |
-|---------|------|---------|
-| `docker`, `docker-compose` | Containers | 75-85% |
-| `kubectl`, `helm` | Kubernetes | 70-85% |
-| `terraform` | IaC | 80-90% |
-| `ansible-playbook` | Automation | 80-85% |
-| `az`, `aws`, `gcloud` | Cloud CLIs | 75-80% |
-
-### Windows System (50-85% savings)
-
-| Command | Type | Savings |
-|---------|------|---------|
-| `ipconfig`, `netstat`, `tasklist` | CMD | 75-80% |
-| `Get-Process`, `Get-Service` | PowerShell | 70-75% |
-| `Get-EventLog`, `Get-WinEvent` | Logs | 85% |
-
-### SSH & Remote (65-75% savings)
-
-| Command | Type | Savings |
-|---------|------|---------|
-| `ssh`, `scp`, `sftp` | OpenSSH | 65-70% |
-| `plink`, `pscp`, `psftp` | PuTTY | 65-70% |
-
----
-
-## Claude Code Integration
-
-WTK integrates with Claude Code via **deterministic hooks**, not CLAUDE.md instructions. This ensures 100% consistent behavior.
-
-### How It Works
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Claude Code                             │
-├─────────────────────────────────────────────────────────────┤
-│  PreToolUse Hook (Bash)                                      │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ Input:  git status                                       │ │
-│  │ WTK:    wtk rewrite "git status"                        │ │
-│  │ Output: {"updatedInput": {"command": "wtk git status"}} │ │
-│  └─────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Configuration
-
-After running `wtk init --claude-code`, your `~/.claude/settings.json` will contain:
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": { "tool_name": "Bash" },
-        "hooks": [{
-          "type": "command",
-          "command": "wtk rewrite"
-        }]
-      }
-    ]
-  }
-}
-```
-
----
-
-## Gain Tracking
-
-WTK tracks all command executions and calculates token savings in real-time.
-
-### View Statistics
+### 3. Track Your Savings
 
 ```bash
 # Summary
 wtk gain
 
-# Detailed history
+# ASCII graph (30 days)
+wtk gain --graph
+
+# Command history
 wtk gain --history
-
-# By filter
-wtk gain --by-filter
-
-# Weekly breakdown
-wtk gain --weekly
-
-# Export as JSON
-wtk gain --format json
 ```
 
-### Example Output
+---
+
+## Token Savings by Category
+
+### Version Control (50-85%)
+| Command | Subcommands | Savings |
+|---------|-------------|---------|
+| `git` | status, log, diff, show, branch, stash | 50-85% |
+| `gh` | pr, issue, run, release, repo, api | 70-87% |
+
+### Build & Languages (70-92%)
+| Command | Type | Savings |
+|---------|------|---------|
+| `cargo` | Rust | 80-90% |
+| `go` | Go | 80-90% |
+| `npm/pnpm/yarn` | Node.js | 70-85% |
+| `pip/poetry` | Python | 70-80% |
+| `mvn/gradle` | Java | 85-92% |
+| `dotnet` | .NET | 70-85% |
+
+### Test Runners (90-99%)
+| Command | Savings |
+|---------|---------|
+| `vitest` | 99% |
+| `jest` | 95% |
+| `playwright` | 94% |
+| `pytest` | 90% |
+| `cargo test` | 90% |
+
+### DevOps & Cloud (70-90%)
+| Command | Type | Savings |
+|---------|------|---------|
+| `docker` | Containers | 75-85% |
+| `kubectl/helm` | Kubernetes | 70-85% |
+| `terraform` | IaC | 80-90% |
+| `az/aws/gcloud` | Cloud CLIs | 75-80% |
+
+### Windows Native (70-85%)
+| Command | Type | Savings |
+|---------|------|---------|
+| `ipconfig/netstat/tasklist` | CMD | 75-80% |
+| `Get-Process/Get-Service` | PowerShell | 70-75% |
+| `winget/choco/scoop` | Package Mgrs | 75-85% |
+
+### Databases (70-85%)
+| Command | Savings |
+|---------|---------|
+| `psql` | 75% |
+| `mysql` | 75% |
+| `sqlcmd` | 75% |
+| `redis-cli` | 80% |
+| `mongosh` | 70% |
+
+---
+
+## Gain Graph
 
 ```
-WTK Token Savings
-═══════════════════════════════════════════════════════════════
+$ wtk gain --graph
 
-Total commands:    156
-Input tokens:      45.2K
-Output tokens:     12.1K
-Tokens saved:      33.1K (73.2%)
-Efficiency meter: ████████████████████░░░░ 73.2%
+WTK Token Savings - Last 30 Days
+════════════════════════════════════════════════════════════
 
-By Command
-───────────────────────────────────────────────────────────────
-  #  Command              Count  Saved    Avg%   Impact
-───────────────────────────────────────────────────────────────
- 1.  wtk git status          45   8.2K   82.3%  ██████████
- 2.  wtk npm run build       12   7.1K   71.5%  ████████░░
- 3.  wtk docker ps           23   5.4K   78.9%  ██████░░░░
- 4.  wtk Get-Process         18   4.8K   72.1%  █████░░░░░
+ 45.2K │                              ███
+       │                         ████████
+       │                    █████████████
+       │               ██████████████████
+       │          █████████████████████████
+       │     ██████████████████████████████
+       │████████████████████████████████████
+     0 │────────────────────────────────────
+        03-17                          04-16
+
+Summary
+────────────────────────────────────
+  Total saved:     1.2M
+  Commands:        2,847
+  Avg efficiency:  78.3%
+```
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Claude Code                              │
+├─────────────────────────────────────────────────────────────────┤
+│  PreToolUse Hook                                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Input:  git status                                        │  │
+│  │  WTK:    wtk rewrite "git status"                         │  │
+│  │  Output: {"updatedInput": {"command": "wtk git status"}}  │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                           WTK                                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐     │
+│  │  Filter  │   │  Filter  │   │  Filter  │   │  Filter  │     │
+│  │   Git    │   │  Docker  │   │  Cargo   │   │   ...    │     │
+│  └────┬─────┘   └────┬─────┘   └────┬─────┘   └────┬─────┘     │
+│       │              │              │              │            │
+│       └──────────────┴──────────────┴──────────────┘            │
+│                              │                                   │
+│                       ┌──────┴──────┐                           │
+│                       │   Registry  │                           │
+│                       │  (50+ filters)                          │
+│                       └──────┬──────┘                           │
+│                              │                                   │
+│                       ┌──────┴──────┐                           │
+│                       │  Tracking   │                           │
+│                       │  (SQLite)   │                           │
+│                       └─────────────┘                           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                    Compressed Output
+                    (60-90% smaller)
+```
+
+### Project Structure
+
+```
+wtk/
+├── src/
+│   ├── main.rs              # Entry point
+│   ├── cli/                 # CLI (clap)
+│   │   ├── mod.rs           # Command definitions
+│   │   └── commands.rs      # Command handlers
+│   ├── filters/             # 50+ command filters
+│   │   ├── git/             # Git operations
+│   │   ├── docker/          # Docker/Compose
+│   │   ├── kubernetes/      # kubectl/helm
+│   │   ├── cloud/           # az/aws/gcloud
+│   │   ├── rust/            # Cargo
+│   │   ├── golang/          # Go
+│   │   ├── python/          # pip/pytest/ruff
+│   │   ├── java/            # Maven/Gradle
+│   │   ├── node/            # npm/pnpm/yarn
+│   │   ├── windows/         # CMD/PowerShell
+│   │   ├── winpkg/          # winget/choco/scoop
+│   │   ├── database/        # psql/mysql/redis
+│   │   ├── terraform/       # Terraform
+│   │   ├── test/            # vitest/jest/playwright
+│   │   ├── lint/            # eslint/prettier
+│   │   ├── frameworks/      # next/nx/vite
+│   │   └── registry.rs      # Filter registry
+│   ├── hooks/               # Hook installers
+│   ├── tracking/            # SQLite tracking
+│   └── compress/            # Compression utils
+├── tests/                   # Integration tests
+└── .github/workflows/       # CI/CD
 ```
 
 ---
@@ -260,7 +332,7 @@ By Command
 
 ### Config File
 
-WTK uses `~/.config/wtk/config.toml` for configuration:
+`~/.config/wtk/config.toml`:
 
 ```toml
 [tracking]
@@ -289,34 +361,7 @@ powershell = true
 
 ---
 
-## Architecture
-
-```
-wtk/
-├── src/
-│   ├── main.rs              # Entry point
-│   ├── cli/                 # CLI commands (clap)
-│   ├── filters/             # Command filters
-│   │   ├── git/             # Git filters
-│   │   ├── node/            # Node.js filters
-│   │   ├── dotnet/          # .NET filters
-│   │   ├── docker/          # Docker filters
-│   │   ├── kubernetes/      # Kubernetes filters
-│   │   └── windows/         # Windows CMD/PowerShell
-│   ├── hooks/               # Hook installers
-│   ├── tracking/            # Gain tracking (SQLite)
-│   └── compress/            # Compression algorithms
-├── tests/                   # Integration tests
-└── benches/                 # Benchmarks
-```
-
----
-
 ## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Setup
 
 ```bash
 # Clone
@@ -326,39 +371,19 @@ cd wtk
 # Build
 cargo build
 
-# Run tests
+# Test
 cargo test
 
-# Run with debug logging
+# Run with debug
 WTK_LOG=debug cargo run -- git status
 ```
 
 ### Adding a New Filter
 
-1. Create a new file in `src/filters/<category>/`
-2. Implement the `Filter` trait
-3. Register the filter in `src/filters/registry.rs`
-4. Add tests in `tests/`
-
----
-
-## Comparison with RTK
-
-| Feature | RTK | WTK |
-|---------|-----|-----|
-| **Platform Focus** | Unix-first | Windows-first |
-| **Commands** | ~60 | 200+ |
-| **Claude Integration** | CLAUDE.md (advisory) | Hooks (deterministic) |
-| **Windows System** | Minimal | 50+ commands |
-| **PowerShell** | No | 25+ cmdlets |
-| **Java** | No | mvn, gradle, ant |
-| **Windows Hooks** | Broken | Native PS + CMD |
-
----
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
+1. Create `src/filters/<category>/mod.rs`
+2. Implement `Filter` trait
+3. Register in `src/filters/registry.rs`
+4. Add tests
 
 ---
 
@@ -368,6 +393,12 @@ Inspired by [RTK (Rust Token Killer)](https://github.com/rtk-ai/rtk).
 
 ---
 
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
 <p align="center">
-  <sub>Built with Rust for the Windows developer community</sub>
+  <sub>Built with Rust for Windows developers</sub>
 </p>

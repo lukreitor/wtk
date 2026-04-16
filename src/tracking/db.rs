@@ -150,6 +150,82 @@ impl TrackingDb {
             by_command,
         })
     }
+
+    /// Get daily statistics for the last N days.
+    pub fn get_daily_stats(&self, days: u32) -> Result<Vec<DailyStats>> {
+        let mut stmt = self.conn.prepare(
+            r#"
+            SELECT
+                DATE(timestamp) as date,
+                COUNT(*) as commands,
+                COALESCE(SUM(input_chars), 0) as input,
+                COALESCE(SUM(output_chars), 0) as output
+            FROM commands
+            WHERE timestamp >= DATE('now', ?1)
+            GROUP BY DATE(timestamp)
+            ORDER BY date ASC
+            "#,
+        )?;
+
+        let offset = format!("-{} days", days);
+        let stats = stmt
+            .query_map([&offset], |row| {
+                let input: i64 = row.get(2)?;
+                let output: i64 = row.get(3)?;
+                let saved = input - output;
+                let percent = if input > 0 {
+                    (saved as f64 / input as f64) * 100.0
+                } else {
+                    0.0
+                };
+                Ok(DailyStats {
+                    date: row.get(0)?,
+                    commands: row.get(1)?,
+                    input_chars: input as usize,
+                    output_chars: output as usize,
+                    saved_chars: saved as usize,
+                    percent,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(stats)
+    }
+
+    /// Get recent command history.
+    pub fn get_history(&self, limit: usize) -> Result<Vec<CommandHistory>> {
+        let mut stmt = self.conn.prepare(
+            r#"
+            SELECT
+                timestamp,
+                command,
+                input_chars,
+                output_chars,
+                saved_percent,
+                filter_name
+            FROM commands
+            ORDER BY timestamp DESC
+            LIMIT ?1
+            "#,
+        )?;
+
+        let history = stmt
+            .query_map([limit as i64], |row| {
+                Ok(CommandHistory {
+                    timestamp: row.get(0)?,
+                    command: row.get(1)?,
+                    input_chars: row.get::<_, i64>(2)? as usize,
+                    output_chars: row.get::<_, i64>(3)? as usize,
+                    percent: row.get(4)?,
+                    filter_name: row.get(5)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(history)
+    }
 }
 
 fn get_db_path() -> Result<PathBuf> {
@@ -177,4 +253,26 @@ pub struct CommandStats {
     pub output_chars: usize,
     pub saved_chars: usize,
     pub percent: f64,
+}
+
+/// Daily statistics.
+#[derive(Debug, Serialize)]
+pub struct DailyStats {
+    pub date: String,
+    pub commands: usize,
+    pub input_chars: usize,
+    pub output_chars: usize,
+    pub saved_chars: usize,
+    pub percent: f64,
+}
+
+/// Command history entry.
+#[derive(Debug, Serialize)]
+pub struct CommandHistory {
+    pub timestamp: String,
+    pub command: String,
+    pub input_chars: usize,
+    pub output_chars: usize,
+    pub percent: f64,
+    pub filter_name: String,
 }

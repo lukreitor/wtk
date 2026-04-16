@@ -10,7 +10,7 @@
 
 ---
 
-## Current Features (v0.2.4)
+## Current Features (v0.3.0)
 
 ### Filters (50+ categories, 200+ commands)
 
@@ -33,7 +33,7 @@
 | **Test** | vitest, jest, playwright | Done |
 | **Lint** | eslint, prettier, biome | Done |
 | **Database** | psql, mysql, sqlcmd, redis-cli, mongosh | Done |
-| **Windows CMD** | ipconfig, netstat, tasklist, ping, systeminfo, sc | Done |
+| **Windows CMD** | ipconfig, netstat, tasklist, ping, systeminfo, sc, wmic, netsh, tree, where, reg, dism, sfc, hostname, getmac, arp, route | Done |
 | **PowerShell** | Get-Process, Get-Service, Get-ChildItem | Done |
 | **Package Mgrs** | winget, choco, scoop | Done |
 | **Network** | curl, ssh, scp, sftp | Done |
@@ -274,6 +274,7 @@ Want to help WTK surpass RTK? Here's how:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| v0.3.0 | 2026-04-16 | Phase 1 CMD filters: wmic, netsh, tree, where, sc, reg, dism, sfc, getmac, arp, route |
 | v0.2.4 | 2026-04-16 | Time period options (-T), history limit (-n) |
 | v0.2.3 | 2026-04-16 | Ansible filter, SFTP support, `wtk discover` |
 | v0.2.2 | 2026-04-16 | One-click installer, gain improvements |

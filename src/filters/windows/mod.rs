@@ -24,7 +24,20 @@ impl Filter for WindowsSystemFilter {
             "whoami" | "whoami.exe" |
             "ping" | "ping.exe" |
             "nslookup" | "nslookup.exe" |
-            "tracert" | "tracert.exe"
+            "tracert" | "tracert.exe" |
+            // Phase 1 additions
+            "wmic" | "wmic.exe" |
+            "netsh" | "netsh.exe" |
+            "tree" | "tree.exe" |
+            "where" | "where.exe" |
+            "sc" | "sc.exe" |
+            "reg" | "reg.exe" |
+            "dism" | "dism.exe" |
+            "sfc" | "sfc.exe" |
+            "hostname" | "hostname.exe" |
+            "getmac" | "getmac.exe" |
+            "arp" | "arp.exe" |
+            "route" | "route.exe"
         )
     }
 
@@ -52,6 +65,19 @@ impl Filter for WindowsSystemFilter {
             "ping" => filter_ping(&stdout),
             "nslookup" => filter_nslookup(&stdout),
             "tracert" => filter_tracert(&stdout),
+            // Phase 1 additions
+            "wmic" => filter_wmic(&stdout, args),
+            "netsh" => filter_netsh(&stdout, args),
+            "tree" => filter_tree(&stdout),
+            "where" => filter_where(&stdout),
+            "sc" => filter_sc(&stdout, args),
+            "reg" => filter_reg(&stdout),
+            "dism" => filter_dism(&stdout),
+            "sfc" => filter_sfc(&stdout),
+            "hostname" => stdout.trim().to_string(),
+            "getmac" => filter_getmac(&stdout),
+            "arp" => filter_arp(&stdout),
+            "route" => filter_route(&stdout),
             _ => stdout.clone(),
         };
 
@@ -524,4 +550,406 @@ fn filter_tracert(stdout: &str) -> String {
     } else {
         result.join("\n")
     }
+}
+
+// ============================================================================
+// Phase 1: Additional Windows CMD Filters
+// ============================================================================
+
+/// Filter wmic output - WMI queries are extremely verbose.
+fn filter_wmic(stdout: &str, args: &[String]) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No data".to_string();
+    }
+
+    // Get the query type from args
+    let query_type = args.first().map(|s| s.to_lowercase()).unwrap_or_default();
+
+    let mut result = Vec::new();
+    result.push(format!("{} results:", lines.len().saturating_sub(1)));
+
+    // Show header and first few rows
+    for line in lines.iter().take(11) {
+        let truncated = if line.len() > 100 {
+            format!("{}...", &line[..97])
+        } else {
+            line.to_string()
+        };
+        result.push(truncated);
+    }
+
+    if lines.len() > 11 {
+        result.push(format!("... +{} more rows", lines.len() - 11));
+    }
+
+    result.join("\n")
+}
+
+/// Filter netsh output - network shell commands.
+fn filter_netsh(stdout: &str, args: &[String]) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No output".to_string();
+    }
+
+    let mut result = Vec::new();
+
+    // Check subcommand
+    let subcmd = args.iter()
+        .take(2)
+        .map(|s| s.to_lowercase())
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    if subcmd.contains("wlan") && subcmd.contains("show") {
+        // WLAN info - extract key details
+        for line in &lines {
+            if line.contains("SSID") || line.contains("Signal") ||
+               line.contains("State") || line.contains("Authentication") {
+                result.push(line.trim().to_string());
+            }
+        }
+        if result.is_empty() {
+            result = lines.iter().take(10).map(|s| s.to_string()).collect();
+        }
+    } else if subcmd.contains("interface") {
+        // Interface info
+        for line in lines.iter().take(15) {
+            result.push(line.to_string());
+        }
+        if lines.len() > 15 {
+            result.push(format!("... +{} more", lines.len() - 15));
+        }
+    } else {
+        // Generic - show summary
+        result.push(format!("{} lines of output", lines.len()));
+        for line in lines.iter().take(10) {
+            result.push(line.to_string());
+        }
+        if lines.len() > 10 {
+            result.push(format!("... +{} more", lines.len() - 10));
+        }
+    }
+
+    result.join("\n")
+}
+
+/// Filter tree output - directory trees can be huge.
+fn filter_tree(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines().collect();
+
+    if lines.is_empty() {
+        return "Empty".to_string();
+    }
+
+    let mut dirs = 0;
+    let mut files = 0;
+
+    for line in &lines {
+        if line.contains("───") || line.contains("---") {
+            if line.contains('.') {
+                files += 1;
+            } else {
+                dirs += 1;
+            }
+        }
+    }
+
+    let mut result = vec![format!("{} dirs, {} files", dirs, files)];
+
+    // Show first 20 lines
+    for line in lines.iter().take(20) {
+        result.push(line.to_string());
+    }
+
+    if lines.len() > 20 {
+        result.push(format!("... +{} more items", lines.len() - 20));
+    }
+
+    result.join("\n")
+}
+
+/// Filter where output - find executables.
+fn filter_where(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "Not found".to_string();
+    }
+
+    let mut result = vec![format!("{} matches:", lines.len())];
+
+    for line in lines.iter().take(10) {
+        result.push(format!("  {}", line));
+    }
+
+    if lines.len() > 10 {
+        result.push(format!("  ... +{} more", lines.len() - 10));
+    }
+
+    result.join("\n")
+}
+
+/// Filter sc output - service control.
+fn filter_sc(stdout: &str, args: &[String]) -> String {
+    let subcmd = args.first().map(|s| s.to_lowercase()).unwrap_or_default();
+
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No output".to_string();
+    }
+
+    let mut result = Vec::new();
+
+    if subcmd == "query" || subcmd == "queryex" {
+        // Service query - extract key info
+        let mut services = 0;
+        let mut running = 0;
+        let mut stopped = 0;
+
+        for line in &lines {
+            if line.contains("SERVICE_NAME") {
+                services += 1;
+            }
+            if line.contains("RUNNING") {
+                running += 1;
+            }
+            if line.contains("STOPPED") {
+                stopped += 1;
+            }
+        }
+
+        result.push(format!("{} services ({} running, {} stopped)", services, running, stopped));
+
+        // Show first few service names
+        let mut count = 0;
+        for line in &lines {
+            if line.contains("SERVICE_NAME") && count < 10 {
+                if let Some(name) = line.split(':').nth(1) {
+                    result.push(format!("  {}", name.trim()));
+                    count += 1;
+                }
+            }
+        }
+
+        if services > 10 {
+            result.push(format!("  ... +{} more", services - 10));
+        }
+    } else {
+        // Other sc commands - show truncated
+        for line in lines.iter().take(10) {
+            result.push(line.to_string());
+        }
+        if lines.len() > 10 {
+            result.push(format!("... +{} more", lines.len() - 10));
+        }
+    }
+
+    result.join("\n")
+}
+
+/// Filter reg output - registry queries.
+fn filter_reg(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No data".to_string();
+    }
+
+    let mut result = vec![format!("{} entries:", lines.len())];
+
+    for line in lines.iter().take(15) {
+        let truncated = if line.len() > 80 {
+            format!("{}...", &line[..77])
+        } else {
+            line.to_string()
+        };
+        result.push(truncated);
+    }
+
+    if lines.len() > 15 {
+        result.push(format!("... +{} more", lines.len() - 15));
+    }
+
+    result.join("\n")
+}
+
+/// Filter dism output - deployment image servicing.
+fn filter_dism(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("===="))
+        .collect();
+
+    if lines.is_empty() {
+        return "No output".to_string();
+    }
+
+    let mut result = Vec::new();
+
+    // Look for key info
+    for line in &lines {
+        if line.contains("Version") || line.contains("State") ||
+           line.contains("Feature") || line.contains("Package") ||
+           line.contains("Image") || line.contains(":") {
+            if result.len() < 15 {
+                result.push(line.trim().to_string());
+            }
+        }
+    }
+
+    if result.is_empty() {
+        result = lines.iter().take(10).map(|s| s.to_string()).collect();
+    }
+
+    if lines.len() > result.len() {
+        result.push(format!("... +{} more lines", lines.len() - result.len()));
+    }
+
+    result.join("\n")
+}
+
+/// Filter sfc output - system file checker.
+fn filter_sfc(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    // Extract key status
+    let mut result = Vec::new();
+
+    for line in &lines {
+        let lower = line.to_lowercase();
+        if lower.contains("verification") || lower.contains("integrity") ||
+           lower.contains("found") || lower.contains("repaired") ||
+           lower.contains("could not") || lower.contains("windows resource") {
+            result.push(line.trim().to_string());
+        }
+    }
+
+    if result.is_empty() {
+        result = lines.iter().take(5).map(|s| s.to_string()).collect();
+    }
+
+    result.join("\n")
+}
+
+/// Filter getmac output - MAC addresses.
+fn filter_getmac(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("===") && !l.contains("Physical"))
+        .collect();
+
+    if lines.is_empty() {
+        return "No adapters".to_string();
+    }
+
+    let mac_re = Regex::new(r"([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}").unwrap();
+
+    let mut result = vec![format!("{} adapters:", lines.len())];
+
+    for line in &lines {
+        if let Some(mac) = mac_re.find(line) {
+            result.push(format!("  {}", mac.as_str()));
+        }
+    }
+
+    result.join("\n")
+}
+
+/// Filter arp output - ARP table.
+fn filter_arp(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    let mut entries = 0;
+    let mut dynamic = 0;
+    let mut static_entries = 0;
+
+    for line in &lines {
+        if line.contains("dynamic") || line.contains("dinâmico") {
+            entries += 1;
+            dynamic += 1;
+        } else if line.contains("static") || line.contains("estático") {
+            entries += 1;
+            static_entries += 1;
+        }
+    }
+
+    let mut result = vec![format!("ARP: {} entries ({} dynamic, {} static)", entries, dynamic, static_entries)];
+
+    // Show first few
+    let mut count = 0;
+    for line in &lines {
+        if (line.contains("dynamic") || line.contains("static") ||
+            line.contains("dinâmico") || line.contains("estático")) && count < 10 {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                result.push(format!("  {} → {}", parts[0], parts[1]));
+                count += 1;
+            }
+        }
+    }
+
+    if entries > 10 {
+        result.push(format!("  ... +{} more", entries - 10));
+    }
+
+    result.join("\n")
+}
+
+/// Filter route output - routing table.
+fn filter_route(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("==="))
+        .collect();
+
+    let mut routes = 0;
+
+    for line in &lines {
+        // Count actual route entries (start with IP)
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if !parts.is_empty() {
+            if parts[0].chars().next().map_or(false, |c| c.is_numeric()) {
+                routes += 1;
+            }
+        }
+    }
+
+    let mut result = vec![format!("{} routes", routes)];
+
+    // Show key routes (default gateway, etc)
+    for line in &lines {
+        if line.contains("0.0.0.0") || line.contains("default") ||
+           line.contains("On-link") {
+            if result.len() < 12 {
+                let truncated = if line.len() > 70 {
+                    format!("{}...", &line[..67])
+                } else {
+                    line.to_string()
+                };
+                result.push(truncated);
+            }
+        }
+    }
+
+    if routes > 10 {
+        result.push(format!("... +{} more routes", routes - 10));
+    }
+
+    result.join("\n")
 }

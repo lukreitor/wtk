@@ -1,0 +1,87 @@
+[package]
+name = "wtk"
+version = "0.1.0"
+edition = "2021"
+authors = ["WTK Contributors"]
+description = "Windows Token Killer - CLI proxy that reduces LLM token consumption by 60-90% on Windows"
+license = "MIT"
+repository = "https://github.com/user/wtk"
+homepage = "https://github.com/user/wtk"
+documentation = "https://github.com/user/wtk#readme"
+readme = "README.md"
+keywords = ["cli", "llm", "token", "optimization", "windows", "ai", "claude", "copilot"]
+categories = ["command-line-utilities", "development-tools"]
+rust-version = "1.75"
+
+[dependencies]
+# CLI Framework
+clap = { version = "4.5", features = ["derive", "env", "wrap_help"] }
+colored = "2.1"
+indicatif = "0.17"
+dialoguer = "0.11"
+console = "0.15"
+
+# Async Runtime
+tokio = { version = "1.36", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Database
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Regex & Parsing
+regex = "1.10"
+lazy_static = "1.4"
+once_cell = "1.19"
+
+# Windows API
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.56", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_System_ProcessStatus",
+    "Win32_Security",
+    "Win32_System_Registry",
+    "Win32_System_Console",
+]}
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Directories
+dirs = "5.0"
+
+# Process execution
+which = "6.0"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
+tempfile = "3.10"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+strip = false
+
+[[bin]]
+name = "wtk"
+path = "src/main.rs"

@@ -1,0 +1,46 @@
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Coverage
+*.profraw
+*.profdata
+lcov.info
+coverage/
+tarpaulin-report.html
+
+# Debug
+debug/
+*.log
+
+# Local configuration
+.env
+.env.local
+*.local.toml
+
+# Distribution
+dist/
+release/
+
+# Benchmarks
+criterion/

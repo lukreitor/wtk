@@ -68,7 +68,7 @@ cargo install --path .
 
 ```bash
 wtk --version
-# wtk 0.1.0
+# wtk 0.2.0
 ```
 
 ---

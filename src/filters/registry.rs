@@ -1,5 +1,6 @@
 //! Filter registry - Central registry for all command filters.
 
+// Core filters
 use super::dotnet::DotnetFilter;
 use super::git::GitFilter;
 use super::github::GhFilter;
@@ -8,6 +9,35 @@ use super::node::NodePackageFilter;
 use super::prisma::PrismaFilter;
 use super::typescript::TscFilter;
 use super::windows::WindowsSystemFilter;
+
+// Language filters
+use super::rust::CargoFilter;
+use super::golang::{GoFilter, GolangciLintFilter};
+use super::python::{PipFilter, PytestFilter, RuffFilter, MypyFilter, PoetryFilter};
+use super::java::{MavenFilter, GradleFilter};
+
+// DevOps filters
+use super::docker::{DockerFilter, DockerComposeFilter};
+use super::kubernetes::{KubectlFilter, HelmFilter};
+use super::terraform::TerraformFilter;
+use super::cloud::{AzFilter, AwsFilter, GcloudFilter};
+
+// Testing & Linting filters
+use super::test::{VitestFilter, JestFilter, PlaywrightFilter};
+use super::lint::{EslintFilter, PrettierFilter, BiomeFilter};
+
+// Database filters
+use super::database::{PsqlFilter, MysqlFilter, SqlcmdFilter, RedisCliFilter, MongoshFilter};
+
+// Package manager filters
+use super::winpkg::{WingetFilter, ChocoFilter, ScoopFilter};
+
+// PowerShell filters
+use super::powershell::{PowerShellFilter, GetProcessFilter, GetServiceFilter, GetChildItemFilter};
+
+// Framework filters
+use super::frameworks::{NextFilter, NxFilter, TurboFilter, ViteFilter};
+
 use super::Filter;
 
 /// Central registry for all command filters.
@@ -37,6 +67,60 @@ impl FilterRegistry {
             Box::new(ScpFilter),
             // Windows system commands
             Box::new(WindowsSystemFilter),
+
+            // Language filters
+            Box::new(CargoFilter),
+            Box::new(GoFilter),
+            Box::new(GolangciLintFilter),
+            Box::new(PipFilter),
+            Box::new(PytestFilter),
+            Box::new(RuffFilter),
+            Box::new(MypyFilter),
+            Box::new(PoetryFilter),
+            Box::new(MavenFilter),
+            Box::new(GradleFilter),
+
+            // DevOps filters
+            Box::new(DockerFilter),
+            Box::new(DockerComposeFilter),
+            Box::new(KubectlFilter),
+            Box::new(HelmFilter),
+            Box::new(TerraformFilter),
+            Box::new(AzFilter),
+            Box::new(AwsFilter),
+            Box::new(GcloudFilter),
+
+            // Testing & Linting filters
+            Box::new(VitestFilter),
+            Box::new(JestFilter),
+            Box::new(PlaywrightFilter),
+            Box::new(EslintFilter),
+            Box::new(PrettierFilter),
+            Box::new(BiomeFilter),
+
+            // Database filters
+            Box::new(PsqlFilter),
+            Box::new(MysqlFilter),
+            Box::new(SqlcmdFilter),
+            Box::new(RedisCliFilter),
+            Box::new(MongoshFilter),
+
+            // Package manager filters
+            Box::new(WingetFilter),
+            Box::new(ChocoFilter),
+            Box::new(ScoopFilter),
+
+            // PowerShell filters
+            Box::new(PowerShellFilter),
+            Box::new(GetProcessFilter),
+            Box::new(GetServiceFilter),
+            Box::new(GetChildItemFilter),
+
+            // Framework filters
+            Box::new(NextFilter),
+            Box::new(NxFilter),
+            Box::new(TurboFilter),
+            Box::new(ViteFilter),
         ];
 
         // Sort by priority (descending)

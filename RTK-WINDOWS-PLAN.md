@@ -33,8 +33,8 @@
 | **Test** | vitest, jest, playwright | Done |
 | **Lint** | eslint, prettier, biome | Done |
 | **Database** | psql, mysql, sqlcmd, redis-cli, mongosh | Done |
-| **Windows CMD** | ipconfig, netstat, tasklist, ping, systeminfo, sc, wmic, netsh, tree, where, reg, dism, sfc, hostname, getmac, arp, route | Done |
-| **PowerShell** | Get-Process, Get-Service, Get-ChildItem | Done |
+| **Windows CMD** | ipconfig, netstat, tasklist, ping, systeminfo, sc, wmic, netsh, tree, where, reg, dism, sfc, hostname, getmac, arp, route, diskpart, bcdedit, certutil, fsutil, icacls, attrib, findstr, robocopy | Done |
+| **PowerShell** | Get-Process, Get-Service, Get-ChildItem, Get-Content, Get-NetAdapter, Get-NetIPAddress, Get-EventLog, Get-WinEvent, Get-HotFix, Get-Volume, Get-Disk, Get-ComputerInfo, Get-PSDrive, Get-Module, Get-Command, Get-History, Get-Alias, Get-ScheduledTask, Get-LocalUser, Get-LocalGroup, Get-Acl, Get-ItemProperty, Test-NetConnection, Test-Path, Select-String, Measure-Object, Format-Table, Format-List, ConvertTo-Json | Done |
 | **Package Mgrs** | winget, choco, scoop | Done |
 | **Network** | curl, ssh, scp, sftp | Done |
 | **Frameworks** | next, nx, turbo, vite | Done |
@@ -52,55 +52,9 @@
 
 ## Roadmap (Planned Features)
 
-### Phase 1: More Windows Native (v0.3.0)
+### Phase 1: More Windows Native (v0.3.0) - COMPLETED
 
-#### CMD Commands (High Priority)
-| Command | Description | Est. Savings |
-|---------|-------------|--------------|
-| `wmic` | WMI queries (deprecated but still used) | 80% |
-| `diskpart` | Disk management | 70% |
-| `netsh` | Network shell | 75% |
-| `dism` | Deployment Image Servicing | 85% |
-| `sfc` | System File Checker | 70% |
-| `bcdedit` | Boot config | 75% |
-| `reg query` | Registry queries | 70% |
-| `certutil` | Certificate management | 75% |
-| `fsutil` | File system utilities | 70% |
-| `icacls` | File permissions | 70% |
-| `attrib` | File attributes | 65% |
-| `tree` | Directory tree | 60% |
-| `where` | Find executables | 60% |
-| `findstr` | Pattern search | 65% |
-| `robocopy` | Robust file copy | 70% |
-
-#### PowerShell Cmdlets (High Priority)
-| Cmdlet | Description | Est. Savings |
-|--------|-------------|--------------|
-| `Get-NetAdapter` | Network adapters | 75% |
-| `Get-NetIPAddress` | IP addresses | 75% |
-| `Get-EventLog` | Event logs (verbose!) | 90% |
-| `Get-WinEvent` | Windows events | 90% |
-| `Get-HotFix` | Windows updates | 75% |
-| `Get-Volume` | Disk volumes | 70% |
-| `Get-Disk` | Disk info | 70% |
-| `Get-PSDrive` | Drives | 65% |
-| `Get-Module` | Installed modules | 75% |
-| `Get-Command` | Available commands | 80% |
-| `Get-History` | Command history | 60% |
-| `Get-Alias` | Aliases | 70% |
-| `Get-Content` | File content | 50% |
-| `Get-ScheduledTask` | Task scheduler | 75% |
-| `Get-LocalUser` | Local users | 70% |
-| `Get-LocalGroup` | Local groups | 70% |
-| `Get-Acl` | Permissions | 75% |
-| `Get-ItemProperty` | Registry values | 70% |
-| `Test-NetConnection` | Network test | 70% |
-| `Test-Path` | Path validation | 50% |
-| `Select-String` | Pattern search | 65% |
-| `Measure-Object` | Stats | 60% |
-| `Format-Table` | Format output | 50% |
-| `Format-List` | Format output | 50% |
-| `ConvertTo-Json` | JSON output | 40% |
+All Phase 1 items have been implemented. See Current Features section above.
 
 ### Phase 2: More DevOps Tools (v0.4.0)
 
@@ -207,10 +161,10 @@
 | Feature | RTK | WTK |
 |---------|:---:|:---:|
 | Windows native | No WSL | Full native |
-| Commands supported | 100+ | **200+** |
-| PowerShell cmdlets | 0 | **25+** |
+| Commands supported | 100+ | **250+** |
+| PowerShell cmdlets | 0 | **29** |
 | Windows package mgrs | 0 | **3** (winget/choco/scoop) |
-| Windows system commands | 5 | **15+** |
+| Windows system commands | 5 | **25+** |
 | One-click install | No | **Yes** |
 | `wtk discover` | No | **Yes** |
 | Time period options | No | **Yes** (-T 1d/7d/30d/90d/1y/all) |
@@ -262,9 +216,9 @@ Want to help WTK surpass RTK? Here's how:
 
 | Metric | Current | Goal |
 |--------|---------|------|
-| Commands supported | 200+ | **500+** |
+| Commands supported | 250+ | **500+** |
 | Average savings | 70% | **80%** |
-| Windows coverage | 85% | **99%** |
+| Windows coverage | 95% | **99%** |
 | Installation steps | 1 | **1** |
 | GitHub stars | - | **1000+** |
 
@@ -274,7 +228,7 @@ Want to help WTK surpass RTK? Here's how:
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| v0.3.0 | 2026-04-16 | Phase 1 CMD filters: wmic, netsh, tree, where, sc, reg, dism, sfc, getmac, arp, route |
+| v0.3.0 | 2026-04-16 | **Phase 1 Complete**: 25 CMD commands, 29 PowerShell cmdlets |
 | v0.2.4 | 2026-04-16 | Time period options (-T), history limit (-n) |
 | v0.2.3 | 2026-04-16 | Ansible filter, SFTP support, `wtk discover` |
 | v0.2.2 | 2026-04-16 | One-click installer, gain improvements |

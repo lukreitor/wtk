@@ -37,7 +37,16 @@ impl Filter for WindowsSystemFilter {
             "hostname" | "hostname.exe" |
             "getmac" | "getmac.exe" |
             "arp" | "arp.exe" |
-            "route" | "route.exe"
+            "route" | "route.exe" |
+            // Phase 1 remaining
+            "diskpart" | "diskpart.exe" |
+            "bcdedit" | "bcdedit.exe" |
+            "certutil" | "certutil.exe" |
+            "fsutil" | "fsutil.exe" |
+            "icacls" | "icacls.exe" |
+            "attrib" | "attrib.exe" |
+            "findstr" | "findstr.exe" |
+            "robocopy" | "robocopy.exe"
         )
     }
 
@@ -78,6 +87,15 @@ impl Filter for WindowsSystemFilter {
             "getmac" => filter_getmac(&stdout),
             "arp" => filter_arp(&stdout),
             "route" => filter_route(&stdout),
+            // Phase 1 remaining
+            "diskpart" => filter_diskpart(&stdout),
+            "bcdedit" => filter_bcdedit(&stdout),
+            "certutil" => filter_certutil(&stdout, args),
+            "fsutil" => filter_fsutil(&stdout),
+            "icacls" => filter_icacls(&stdout),
+            "attrib" => filter_attrib(&stdout),
+            "findstr" => filter_findstr(&stdout),
+            "robocopy" => filter_robocopy(&stdout),
             _ => stdout.clone(),
         };
 
@@ -949,6 +967,357 @@ fn filter_route(stdout: &str) -> String {
 
     if routes > 10 {
         result.push(format!("... +{} more routes", routes - 10));
+    }
+
+    result.join("\n")
+}
+
+// ============================================================================
+// Phase 1 Remaining: CMD Filters
+// ============================================================================
+
+/// Filter diskpart output - disk management.
+fn filter_diskpart(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No output".to_string();
+    }
+
+    let mut result = Vec::new();
+    let mut disks = 0;
+    let mut volumes = 0;
+    let mut partitions = 0;
+
+    for line in &lines {
+        if line.contains("Disk ###") || line.contains("Disco ###") {
+            disks += 1;
+        }
+        if line.contains("Volume ###") {
+            volumes += 1;
+        }
+        if line.contains("Partition ###") || line.contains("Partição") {
+            partitions += 1;
+        }
+    }
+
+    if disks > 0 || volumes > 0 || partitions > 0 {
+        result.push(format!("{} disks, {} volumes, {} partitions", disks, volumes, partitions));
+    }
+
+    // Show first relevant lines
+    for line in lines.iter().take(15) {
+        if !line.contains("DISKPART>") && !line.contains("Microsoft") {
+            result.push(line.to_string());
+        }
+    }
+
+    if lines.len() > 15 {
+        result.push(format!("... +{} more lines", lines.len() - 15));
+    }
+
+    if result.is_empty() {
+        lines.iter().take(10).map(|s| s.to_string()).collect::<Vec<_>>().join("\n")
+    } else {
+        result.join("\n")
+    }
+}
+
+/// Filter bcdedit output - boot configuration.
+fn filter_bcdedit(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No boot entries".to_string();
+    }
+
+    let mut result = Vec::new();
+    let mut entries = 0;
+
+    for line in &lines {
+        if line.contains("identifier") || line.contains("identificador") {
+            entries += 1;
+        }
+    }
+
+    result.push(format!("{} boot entries", entries));
+
+    // Extract key info
+    for line in &lines {
+        if line.contains("identifier") || line.contains("device") ||
+           line.contains("path") || line.contains("description") ||
+           line.contains("osdevice") || line.contains("default") {
+            if result.len() < 15 {
+                let truncated = if line.len() > 70 {
+                    format!("{}...", &line[..67])
+                } else {
+                    line.to_string()
+                };
+                result.push(truncated);
+            }
+        }
+    }
+
+    if entries > 5 {
+        result.push(format!("... +{} more entries", entries - 5));
+    }
+
+    result.join("\n")
+}
+
+/// Filter certutil output - certificate management.
+fn filter_certutil(stdout: &str, args: &[String]) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("===="))
+        .collect();
+
+    if lines.is_empty() {
+        return "No output".to_string();
+    }
+
+    let subcmd = args.first().map(|s| s.to_lowercase()).unwrap_or_default();
+
+    let mut result = Vec::new();
+
+    if subcmd.contains("store") || subcmd.contains("verify") {
+        // Certificate store - count certs
+        let mut certs = 0;
+        for line in &lines {
+            if line.contains("Serial Number") || line.contains("Número de Série") {
+                certs += 1;
+            }
+        }
+        result.push(format!("{} certificates", certs));
+
+        // Show key info
+        for line in &lines {
+            if line.contains("Subject") || line.contains("Issuer") ||
+               line.contains("NotAfter") || line.contains("Serial") {
+                if result.len() < 12 {
+                    result.push(line.trim().to_string());
+                }
+            }
+        }
+    } else {
+        // Generic - truncate
+        for line in lines.iter().take(15) {
+            result.push(line.to_string());
+        }
+    }
+
+    if lines.len() > result.len() {
+        result.push(format!("... +{} more lines", lines.len() - result.len()));
+    }
+
+    result.join("\n")
+}
+
+/// Filter fsutil output - file system utilities.
+fn filter_fsutil(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No output".to_string();
+    }
+
+    let mut result = Vec::new();
+
+    // Extract key info lines
+    for line in &lines {
+        if line.contains(":") || line.contains("=") {
+            if result.len() < 15 {
+                let truncated = if line.len() > 70 {
+                    format!("{}...", &line[..67])
+                } else {
+                    line.to_string()
+                };
+                result.push(truncated);
+            }
+        }
+    }
+
+    if result.is_empty() {
+        result = lines.iter().take(10).map(|s| s.to_string()).collect();
+    }
+
+    if lines.len() > result.len() {
+        result.push(format!("... +{} more", lines.len() - result.len()));
+    }
+
+    result.join("\n")
+}
+
+/// Filter icacls output - file permissions.
+fn filter_icacls(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No output".to_string();
+    }
+
+    let mut files = 0;
+    let mut result = Vec::new();
+
+    // Count files processed
+    for line in &lines {
+        if line.contains("Successfully processed") || line.contains("processados com êxito") {
+            result.push(line.trim().to_string());
+        }
+        if !line.starts_with(' ') && !line.contains("Successfully") {
+            files += 1;
+        }
+    }
+
+    if files > 0 && result.is_empty() {
+        result.push(format!("{} files", files));
+    }
+
+    // Show first few permission entries
+    for line in lines.iter().take(10) {
+        if !result.contains(&line.to_string()) {
+            let truncated = if line.len() > 70 {
+                format!("{}...", &line[..67])
+            } else {
+                line.to_string()
+            };
+            result.push(truncated);
+        }
+    }
+
+    if lines.len() > 10 {
+        result.push(format!("... +{} more", lines.len() - 10));
+    }
+
+    result.join("\n")
+}
+
+/// Filter attrib output - file attributes.
+fn filter_attrib(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No files".to_string();
+    }
+
+    let mut result = vec![format!("{} files", lines.len())];
+
+    // Show first few with attributes
+    for line in lines.iter().take(15) {
+        let truncated = if line.len() > 70 {
+            format!("{}...", &line[..67])
+        } else {
+            line.to_string()
+        };
+        result.push(truncated);
+    }
+
+    if lines.len() > 15 {
+        result.push(format!("... +{} more", lines.len() - 15));
+    }
+
+    result.join("\n")
+}
+
+/// Filter findstr output - pattern search.
+fn filter_findstr(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines().collect();
+
+    if lines.is_empty() {
+        return "No matches".to_string();
+    }
+
+    let mut result = vec![format!("{} matches", lines.len())];
+
+    // Group by file if possible
+    let mut current_file = String::new();
+    let mut file_matches = 0;
+
+    for line in &lines {
+        if let Some(colon_pos) = line.find(':') {
+            let file = &line[..colon_pos];
+            if file != current_file {
+                if !current_file.is_empty() && file_matches > 1 {
+                    // Previous file had multiple matches
+                }
+                current_file = file.to_string();
+                file_matches = 0;
+            }
+            file_matches += 1;
+        }
+
+        if result.len() < 15 {
+            let truncated = if line.len() > 80 {
+                format!("{}...", &line[..77])
+            } else {
+                line.to_string()
+            };
+            result.push(truncated);
+        }
+    }
+
+    if lines.len() > 14 {
+        result.push(format!("... +{} more matches", lines.len() - 14));
+    }
+
+    result.join("\n")
+}
+
+/// Filter robocopy output - robust file copy.
+fn filter_robocopy(stdout: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No output".to_string();
+    }
+
+    let mut result = Vec::new();
+
+    // Extract summary stats
+    let mut dirs_total = 0;
+    let mut files_total = 0;
+    let mut bytes_total = 0u64;
+
+    for line in &lines {
+        // Look for summary lines
+        if line.contains("Dirs :") || line.contains("Pastas :") {
+            result.push(line.trim().to_string());
+        }
+        if line.contains("Files :") || line.contains("Arquivos :") {
+            result.push(line.trim().to_string());
+        }
+        if line.contains("Bytes :") {
+            result.push(line.trim().to_string());
+        }
+        if line.contains("Times :") || line.contains("Speed :") {
+            result.push(line.trim().to_string());
+        }
+        if line.contains("Ended :") || line.contains("Started :") {
+            result.push(line.trim().to_string());
+        }
+    }
+
+    // If no summary found, show truncated output
+    if result.is_empty() {
+        for line in lines.iter().take(15) {
+            if !line.contains("----") && !line.contains("ROBOCOPY") {
+                result.push(line.to_string());
+            }
+        }
+        if lines.len() > 15 {
+            result.push(format!("... +{} more lines", lines.len() - 15));
+        }
     }
 
     result.join("\n")

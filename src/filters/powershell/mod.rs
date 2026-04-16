@@ -193,6 +193,23 @@ fn filter_by_cmdlet(cmdlet: &str, stdout: &str, stderr: &str) -> String {
         s if s.contains("get-eventlog") || s.contains("get-winevent") => filter_get_eventlog(stdout, stderr),
         s if s.contains("get-hotfix") => filter_get_hotfix(stdout, stderr),
         s if s.contains("get-computerinfo") => filter_get_computerinfo(stdout, stderr),
+        // Phase 1 additions
+        s if s.contains("get-psdrive") => filter_get_psdrive(stdout, stderr),
+        s if s.contains("get-module") => filter_get_module(stdout, stderr),
+        s if s.contains("get-command") => filter_get_command(stdout, stderr),
+        s if s.contains("get-history") => filter_get_history(stdout, stderr),
+        s if s.contains("get-alias") => filter_get_alias(stdout, stderr),
+        s if s.contains("get-scheduledtask") => filter_get_scheduledtask(stdout, stderr),
+        s if s.contains("get-localuser") => filter_get_localuser(stdout, stderr),
+        s if s.contains("get-localgroup") => filter_get_localgroup(stdout, stderr),
+        s if s.contains("get-acl") => filter_get_acl(stdout, stderr),
+        s if s.contains("get-itemproperty") => filter_get_itemproperty(stdout, stderr),
+        s if s.contains("test-netconnection") => filter_test_netconnection(stdout, stderr),
+        s if s.contains("test-path") => filter_test_path(stdout, stderr),
+        s if s.contains("select-string") => filter_select_string(stdout, stderr),
+        s if s.contains("measure-object") => filter_measure_object(stdout, stderr),
+        s if s.contains("format-table") || s.contains("format-list") => filter_format_output(stdout, stderr),
+        s if s.contains("convertto-json") => filter_convertto_json(stdout, stderr),
         _ => filter_generic(stdout, stderr),
     }
 }
@@ -568,6 +585,507 @@ fn filter_get_computerinfo(stdout: &str, _stderr: &str) -> String {
     } else {
         result.join("\n")
     }
+}
+
+// Phase 1 additions
+
+fn filter_get_psdrive(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("---") && !l.contains("Name"))
+        .collect();
+
+    if lines.is_empty() {
+        return "No drives found".to_string();
+    }
+
+    let mut result = vec![format!("{} drives", lines.len())];
+
+    for line in lines.iter().take(10) {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 3 {
+            let name = parts.first().unwrap_or(&"");
+            let used = parts.get(1).unwrap_or(&"");
+            let free = parts.get(2).unwrap_or(&"");
+            result.push(format!("  {}: used={} free={}", name, used, free));
+        }
+    }
+
+    if lines.len() > 10 {
+        result.push(format!("  ... +{} more", lines.len() - 10));
+    }
+
+    if !stderr.is_empty() {
+        result.push(format!("! {}", truncate(stderr.lines().next().unwrap_or(""), 50)));
+    }
+
+    result.join("\n")
+}
+
+fn filter_get_module(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("---") && !l.contains("ModuleType"))
+        .collect();
+
+    if lines.is_empty() {
+        return "No modules loaded".to_string();
+    }
+
+    let mut result = vec![format!("{} modules", lines.len())];
+
+    for line in lines.iter().take(15) {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 3 {
+            let version = parts.get(1).unwrap_or(&"");
+            let name = parts.get(2).unwrap_or(&"");
+            result.push(format!("  {} v{}", name, version));
+        }
+    }
+
+    if lines.len() > 15 {
+        result.push(format!("  ... +{} more", lines.len() - 15));
+    }
+
+    if !stderr.is_empty() {
+        result.push(format!("! {}", truncate(stderr.lines().next().unwrap_or(""), 50)));
+    }
+
+    result.join("\n")
+}
+
+fn filter_get_command(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("---") && !l.contains("CommandType"))
+        .collect();
+
+    if lines.is_empty() {
+        return "No commands found".to_string();
+    }
+
+    let mut cmdlets = 0;
+    let mut functions = 0;
+    let mut aliases = 0;
+
+    for line in &lines {
+        if line.contains("Cmdlet") { cmdlets += 1; }
+        else if line.contains("Function") { functions += 1; }
+        else if line.contains("Alias") { aliases += 1; }
+    }
+
+    let mut result = vec![format!("{} commands ({} cmdlets, {} functions, {} aliases)",
+        lines.len(), cmdlets, functions, aliases)];
+
+    for line in lines.iter().take(10) {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2 {
+            let name = parts.get(1).unwrap_or(&"");
+            result.push(format!("  {}", name));
+        }
+    }
+
+    if lines.len() > 10 {
+        result.push(format!("  ... +{} more", lines.len() - 10));
+    }
+
+    result.join("\n")
+}
+
+fn filter_get_history(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("---") && !l.contains("Id"))
+        .collect();
+
+    if lines.is_empty() {
+        return "No history".to_string();
+    }
+
+    let mut result = vec![format!("{} history entries", lines.len())];
+
+    for line in lines.iter().rev().take(10) {
+        let parts: Vec<&str> = line.splitn(2, char::is_whitespace).collect();
+        if parts.len() >= 2 {
+            result.push(format!("  {}", truncate(parts.get(1).unwrap_or(&"").trim(), 60)));
+        }
+    }
+
+    if lines.len() > 10 {
+        result.push(format!("  ... +{} more", lines.len() - 10));
+    }
+
+    result.join("\n")
+}
+
+fn filter_get_alias(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("---") && !l.contains("CommandType"))
+        .collect();
+
+    if lines.is_empty() {
+        return "No aliases".to_string();
+    }
+
+    let mut result = vec![format!("{} aliases", lines.len())];
+
+    for line in lines.iter().take(15) {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2 {
+            let alias = parts.get(1).unwrap_or(&"");
+            let target = parts.get(3).unwrap_or(&"");
+            result.push(format!("  {} -> {}", alias, target));
+        }
+    }
+
+    if lines.len() > 15 {
+        result.push(format!("  ... +{} more", lines.len() - 15));
+    }
+
+    result.join("\n")
+}
+
+fn filter_get_scheduledtask(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("---") && !l.contains("TaskPath"))
+        .collect();
+
+    if lines.is_empty() {
+        return "No scheduled tasks".to_string();
+    }
+
+    let mut ready = 0;
+    let mut disabled = 0;
+    let mut running = 0;
+
+    for line in &lines {
+        if line.contains("Ready") { ready += 1; }
+        else if line.contains("Disabled") { disabled += 1; }
+        else if line.contains("Running") { running += 1; }
+    }
+
+    let mut result = vec![format!("{} tasks ({} ready, {} disabled, {} running)",
+        lines.len(), ready, disabled, running)];
+
+    for line in lines.iter().take(10) {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2 {
+            let name = parts.get(1).unwrap_or(&"");
+            let state = parts.last().unwrap_or(&"");
+            result.push(format!("  {} [{}]", truncate(name, 40), state));
+        }
+    }
+
+    if lines.len() > 10 {
+        result.push(format!("  ... +{} more", lines.len() - 10));
+    }
+
+    result.join("\n")
+}
+
+fn filter_get_localuser(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("---") && !l.contains("Name"))
+        .collect();
+
+    if lines.is_empty() {
+        return "No local users".to_string();
+    }
+
+    let mut enabled = 0;
+    let mut disabled = 0;
+
+    for line in &lines {
+        if line.contains("True") { enabled += 1; }
+        else if line.contains("False") { disabled += 1; }
+    }
+
+    let mut result = vec![format!("{} users ({} enabled, {} disabled)", lines.len(), enabled, disabled)];
+
+    for line in &lines {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2 {
+            let name = parts.first().unwrap_or(&"");
+            let status = if line.contains("True") { "enabled" } else { "disabled" };
+            result.push(format!("  {} [{}]", name, status));
+        }
+    }
+
+    result.join("\n")
+}
+
+fn filter_get_localgroup(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("---") && !l.contains("Name"))
+        .collect();
+
+    if lines.is_empty() {
+        return "No local groups".to_string();
+    }
+
+    let mut result = vec![format!("{} groups", lines.len())];
+
+    for line in lines.iter().take(15) {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if let Some(name) = parts.first() {
+            result.push(format!("  {}", name));
+        }
+    }
+
+    if lines.len() > 15 {
+        result.push(format!("  ... +{} more", lines.len() - 15));
+    }
+
+    result.join("\n")
+}
+
+fn filter_get_acl(stdout: &str, stderr: &str) -> String {
+    let path_re = Regex::new(r"Path\s*:\s*(.+)").unwrap();
+    let owner_re = Regex::new(r"Owner\s*:\s*(.+)").unwrap();
+    let access_re = Regex::new(r"Access\s*:\s*(.+)").unwrap();
+
+    let path = path_re.captures(stdout).map(|c| c[1].trim().to_string());
+    let owner = owner_re.captures(stdout).map(|c| c[1].trim().to_string());
+    let access_lines: Vec<String> = access_re.captures_iter(stdout)
+        .map(|c| c[1].trim().to_string())
+        .collect();
+
+    let mut result = Vec::new();
+
+    if let Some(p) = path {
+        result.push(format!("Path: {}", truncate(&p, 60)));
+    }
+    if let Some(o) = owner {
+        result.push(format!("Owner: {}", o));
+    }
+    if !access_lines.is_empty() {
+        result.push(format!("Access: {} entries", access_lines.len()));
+        for acl in access_lines.iter().take(5) {
+            result.push(format!("  {}", truncate(acl, 60)));
+        }
+        if access_lines.len() > 5 {
+            result.push(format!("  ... +{} more", access_lines.len() - 5));
+        }
+    }
+
+    if result.is_empty() {
+        filter_generic(stdout, stderr)
+    } else {
+        result.join("\n")
+    }
+}
+
+fn filter_get_itemproperty(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && l.contains(':'))
+        .collect();
+
+    if lines.is_empty() {
+        return filter_generic(stdout, stderr);
+    }
+
+    let mut result = vec![format!("{} properties", lines.len())];
+
+    for line in lines.iter().take(15) {
+        if let Some((key, value)) = line.split_once(':') {
+            let key = key.trim();
+            let value = value.trim();
+            // Skip PSPath and other PS* properties
+            if !key.starts_with("PS") {
+                result.push(format!("  {}: {}", key, truncate(value, 50)));
+            }
+        }
+    }
+
+    if lines.len() > 15 {
+        result.push(format!("  ... +{} more", lines.len() - 15));
+    }
+
+    result.join("\n")
+}
+
+fn filter_test_netconnection(stdout: &str, stderr: &str) -> String {
+    let computer_re = Regex::new(r"ComputerName\s*:\s*(.+)").unwrap();
+    let addr_re = Regex::new(r"RemoteAddress\s*:\s*(.+)").unwrap();
+    let success_re = Regex::new(r"(?i)(TcpTestSucceeded|PingSucceeded)\s*:\s*(\w+)").unwrap();
+    let latency_re = Regex::new(r"(?:PingReplyDetails|ResponseTime)[^:]*:\s*(\d+)").unwrap();
+
+    let computer = computer_re.captures(stdout).map(|c| c[1].trim().to_string());
+    let addr = addr_re.captures(stdout).map(|c| c[1].trim().to_string());
+    let success = success_re.captures(stdout).map(|c| c[2].to_string());
+    let latency = latency_re.captures(stdout).map(|c| c[1].to_string());
+
+    let mut result = Vec::new();
+
+    let target = computer.or(addr).unwrap_or_else(|| "unknown".to_string());
+    let status = match success.as_deref() {
+        Some("True") => "OK",
+        Some("False") => "FAILED",
+        _ => "unknown"
+    };
+
+    result.push(format!("{} -> {}", target, status));
+
+    if let Some(lat) = latency {
+        result.push(format!("  Latency: {}ms", lat));
+    }
+
+    if !stderr.is_empty() {
+        result.push(format!("! {}", truncate(stderr.lines().next().unwrap_or(""), 50)));
+    }
+
+    result.join("\n")
+}
+
+fn filter_test_path(stdout: &str, _stderr: &str) -> String {
+    let output = stdout.trim().to_lowercase();
+    if output == "true" {
+        "Path exists: True".to_string()
+    } else if output == "false" {
+        "Path exists: False".to_string()
+    } else {
+        format!("Result: {}", truncate(stdout.trim(), 50))
+    }
+}
+
+fn filter_select_string(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No matches".to_string();
+    }
+
+    // Group by filename
+    let mut by_file: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+
+    for line in &lines {
+        if let Some((file, content)) = line.split_once(':') {
+            let file = file.split(':').next().unwrap_or(file);
+            by_file.entry(file.to_string())
+                .or_default()
+                .push(content.trim().to_string());
+        } else {
+            by_file.entry("(stdin)".to_string())
+                .or_default()
+                .push(line.to_string());
+        }
+    }
+
+    let mut result = vec![format!("{} matches in {} files", lines.len(), by_file.len())];
+
+    for (file, matches) in by_file.iter().take(10) {
+        result.push(format!("{}:", truncate(file, 40)));
+        for m in matches.iter().take(3) {
+            result.push(format!("  {}", truncate(m, 60)));
+        }
+        if matches.len() > 3 {
+            result.push(format!("  ... +{} more", matches.len() - 3));
+        }
+    }
+
+    if by_file.len() > 10 {
+        result.push(format!("... +{} more files", by_file.len() - 10));
+    }
+
+    result.join("\n")
+}
+
+fn filter_measure_object(stdout: &str, _stderr: &str) -> String {
+    let count_re = Regex::new(r"Count\s*:\s*(\d+)").unwrap();
+    let avg_re = Regex::new(r"Average\s*:\s*([\d.]+)").unwrap();
+    let sum_re = Regex::new(r"Sum\s*:\s*([\d.]+)").unwrap();
+    let min_re = Regex::new(r"Minimum\s*:\s*([\d.]+)").unwrap();
+    let max_re = Regex::new(r"Maximum\s*:\s*([\d.]+)").unwrap();
+
+    let mut result = Vec::new();
+
+    if let Some(c) = count_re.captures(stdout) {
+        result.push(format!("Count: {}", &c[1]));
+    }
+    if let Some(c) = avg_re.captures(stdout) {
+        result.push(format!("Average: {}", &c[1]));
+    }
+    if let Some(c) = sum_re.captures(stdout) {
+        result.push(format!("Sum: {}", &c[1]));
+    }
+    if let Some(c) = min_re.captures(stdout) {
+        result.push(format!("Min: {}", &c[1]));
+    }
+    if let Some(c) = max_re.captures(stdout) {
+        result.push(format!("Max: {}", &c[1]));
+    }
+
+    if result.is_empty() {
+        filter_generic(stdout, "")
+    } else {
+        result.join(" | ")
+    }
+}
+
+fn filter_format_output(stdout: &str, stderr: &str) -> String {
+    // Format-Table and Format-List just pass through but truncated
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No output".to_string();
+    }
+
+    let mut result: Vec<String> = lines.iter()
+        .take(20)
+        .map(|l| truncate(l, 80))
+        .collect();
+
+    if lines.len() > 20 {
+        result.push(format!("... +{} more lines", lines.len() - 20));
+    }
+
+    if !stderr.is_empty() {
+        result.push(format!("! {}", truncate(stderr.lines().next().unwrap_or(""), 50)));
+    }
+
+    result.join("\n")
+}
+
+fn filter_convertto_json(stdout: &str, _stderr: &str) -> String {
+    // For JSON, show structure summary
+    let lines: Vec<&str> = stdout.lines().collect();
+
+    if lines.is_empty() {
+        return "{}".to_string();
+    }
+
+    // Count nesting depth and key count
+    let mut depth = 0;
+    let mut max_depth = 0;
+    let mut key_count = 0;
+    let key_re = Regex::new(r#""(\w+)":\s*"#).unwrap();
+
+    for line in &lines {
+        for c in line.chars() {
+            match c {
+                '{' | '[' => {
+                    depth += 1;
+                    max_depth = max_depth.max(depth);
+                }
+                '}' | ']' => depth -= 1,
+                _ => {}
+            }
+        }
+        key_count += key_re.find_iter(line).count();
+    }
+
+    let mut result = vec![format!("JSON: {} lines, {} keys, depth {}", lines.len(), key_count, max_depth)];
+
+    // Show first few lines
+    for line in lines.iter().take(10) {
+        result.push(truncate(line, 70));
+    }
+
+    if lines.len() > 10 {
+        result.push(format!("... +{} more lines", lines.len() - 10));
+    }
+
+    result.join("\n")
 }
 
 fn filter_generic(stdout: &str, stderr: &str) -> String {

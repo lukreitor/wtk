@@ -226,6 +226,42 @@ impl TrackingDb {
 
         Ok(history)
     }
+
+    /// Get command history filtered by time period.
+    pub fn get_history_with_period(&self, limit: usize, days: u32) -> Result<Vec<CommandHistory>> {
+        let mut stmt = self.conn.prepare(
+            r#"
+            SELECT
+                timestamp,
+                command,
+                input_chars,
+                output_chars,
+                saved_percent,
+                filter_name
+            FROM commands
+            WHERE timestamp >= DATE('now', ?1)
+            ORDER BY timestamp DESC
+            LIMIT ?2
+            "#,
+        )?;
+
+        let offset = format!("-{} days", days);
+        let history = stmt
+            .query_map(params![&offset, limit as i64], |row| {
+                Ok(CommandHistory {
+                    timestamp: row.get(0)?,
+                    command: row.get(1)?,
+                    input_chars: row.get::<_, i64>(2)? as usize,
+                    output_chars: row.get::<_, i64>(3)? as usize,
+                    percent: row.get(4)?,
+                    filter_name: row.get(5)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(history)
+    }
 }
 
 fn get_db_path() -> Result<PathBuf> {

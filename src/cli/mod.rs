@@ -53,7 +53,7 @@ pub struct GainOptions {
     #[arg(short = 'H', long)]
     pub history: bool,
 
-    /// Show ASCII graph of savings over 30 days
+    /// Show ASCII graph of savings
     #[arg(short, long)]
     pub graph: bool,
 
@@ -80,6 +80,14 @@ pub struct GainOptions {
     /// Filter to current project
     #[arg(short, long)]
     pub project: bool,
+
+    /// Time period: 1d, 7d, 30d, 90d, 1y, all (default: 30d)
+    #[arg(short = 'T', long, default_value = "30d")]
+    pub period: String,
+
+    /// Number of history entries to show (default: 20)
+    #[arg(short = 'n', long, default_value = "20")]
+    pub limit: usize,
 }
 
 #[derive(clap::Args, Debug)]

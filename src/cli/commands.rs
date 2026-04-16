@@ -78,18 +78,54 @@ pub fn rewrite_command(command: &str) -> Result<()> {
     Ok(())
 }
 
+/// Parse period string to days
+fn parse_period(period: &str) -> u32 {
+    match period.to_lowercase().as_str() {
+        "1d" | "24h" | "today" => 1,
+        "3d" => 3,
+        "7d" | "1w" | "week" => 7,
+        "14d" | "2w" => 14,
+        "30d" | "1m" | "month" => 30,
+        "90d" | "3m" => 90,
+        "180d" | "6m" => 180,
+        "365d" | "1y" | "year" => 365,
+        "all" => 9999,
+        _ => {
+            // Try to parse as number of days
+            period.trim_end_matches('d').parse().unwrap_or(30)
+        }
+    }
+}
+
+/// Get period label for display
+fn period_label(period: &str) -> &str {
+    match period.to_lowercase().as_str() {
+        "1d" | "24h" | "today" => "Last 24 Hours",
+        "3d" => "Last 3 Days",
+        "7d" | "1w" | "week" => "Last 7 Days",
+        "14d" | "2w" => "Last 2 Weeks",
+        "30d" | "1m" | "month" => "Last 30 Days",
+        "90d" | "3m" => "Last 3 Months",
+        "180d" | "6m" => "Last 6 Months",
+        "365d" | "1y" | "year" => "Last Year",
+        "all" => "All Time",
+        _ => "Custom Period",
+    }
+}
+
 /// Show token savings statistics.
 pub fn show_gain(options: GainOptions) -> Result<()> {
     let db = TrackingDb::open()?;
+    let days = parse_period(&options.period);
 
     // Handle --graph option
     if options.graph {
-        return show_gain_graph(&db);
+        return show_gain_graph(&db, days, &options.period);
     }
 
     // Handle --history option
     if options.history {
-        return show_gain_history(&db);
+        return show_gain_history(&db, options.limit, days, &options.period);
     }
 
     let stats = db.get_statistics()?;
@@ -171,49 +207,66 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
     Ok(())
 }
 
-/// Show ASCII graph of token savings over 30 days.
-fn show_gain_graph(db: &TrackingDb) -> Result<()> {
-    let daily = db.get_daily_stats(30)?;
+/// Show ASCII graph of token savings.
+fn show_gain_graph(db: &TrackingDb, days: u32, period: &str) -> Result<()> {
+    let daily = db.get_daily_stats(days)?;
+    let label = period_label(period);
 
     println!();
-    println!("{}", "📈 WTK Token Savings - Last 30 Days".bold());
+    println!("{}", format!("📈 WTK Token Savings - {}", label).bold());
     println!("{}", "═".repeat(60));
     println!();
 
     if daily.is_empty() {
         println!("{}", "  No data yet. Run some commands through WTK first!".yellow());
+        println!();
+        println!("  {}", "Available periods:".dimmed());
+        println!("    {} 1d, 7d, 30d, 90d, 1y, all", "→".dimmed());
+        println!("    {} wtk gain --graph -T 7d", "Example:".dimmed());
         return Ok(());
     }
 
     // Find max saved for scaling
     let max_saved = daily.iter().map(|d| d.saved_chars).max().unwrap_or(1);
     let graph_height = 12;
-    let graph_width = daily.len().min(30);
+    let max_width = if days <= 7 { 7 } else if days <= 30 { 30 } else { 60 };
+    let graph_width = daily.len().min(max_width);
     let mid_value = max_saved / 2;
+    let quarter_value = max_saved / 4;
+    let three_quarter_value = (max_saved * 3) / 4;
 
     // Render graph (top to bottom)
     for row in (0..graph_height).rev() {
         let threshold = (max_saved as f64 * (row as f64 + 1.0) / graph_height as f64) as usize;
 
-        // Y-axis label
+        // Y-axis label - show more labels
         if row == graph_height - 1 {
             print!("{:>8} │ ", format_tokens(max_saved).cyan());
+        } else if row == (graph_height * 3) / 4 {
+            print!("{:>8} │ ", format_tokens(three_quarter_value).dimmed());
         } else if row == graph_height / 2 {
             print!("{:>8} │ ", format_tokens(mid_value).dimmed());
+        } else if row == graph_height / 4 {
+            print!("{:>8} │ ", format_tokens(quarter_value).dimmed());
         } else if row == 0 {
             print!("{:>8} │ ", "0".dimmed());
         } else {
             print!("         │ ");
         }
 
-        // Bars (double width for better visibility)
+        // Bars
+        let bar_width = if days <= 7 { 4 } else if days <= 30 { 2 } else { 1 };
         for day in daily.iter().take(graph_width) {
+            let bar = if bar_width == 4 { "████" } else if bar_width == 2 { "██" } else { "█" };
+            let half_bar = if bar_width == 4 { "▄▄▄▄" } else if bar_width == 2 { "▄▄" } else { "▄" };
+            let space = " ".repeat(bar_width);
+
             if day.saved_chars >= threshold {
-                print!("{}", "██".bright_green());
+                print!("{}", bar.bright_green());
             } else if day.saved_chars >= threshold.saturating_sub(max_saved / graph_height / 2) {
-                print!("{}", "▄▄".green());
+                print!("{}", half_bar.green());
             } else {
-                print!("  ");
+                print!("{}", space);
             }
         }
         println!();
@@ -221,14 +274,16 @@ fn show_gain_graph(db: &TrackingDb) -> Result<()> {
 
     // X-axis
     print!("         └─");
-    print!("{}", "──".repeat(graph_width));
+    let bar_width = if days <= 7 { 4 } else if days <= 30 { 2 } else { 1 };
+    print!("{}", "─".repeat(graph_width * bar_width));
     println!();
 
     // Date labels
     if let (Some(first), Some(last)) = (daily.first(), daily.last()) {
         let first_date = &first.date[5..]; // MM-DD
         let last_date = &last.date[5..];
-        let padding = (graph_width * 2).saturating_sub(first_date.len() + last_date.len());
+        let total_width = graph_width * bar_width;
+        let padding = total_width.saturating_sub(first_date.len() + last_date.len());
         println!("           {}{}{}", first_date, " ".repeat(padding), last_date);
     }
 
@@ -244,40 +299,55 @@ fn show_gain_graph(db: &TrackingDb) -> Result<()> {
         0.0
     };
 
-    println!("{}", "📊 Summary".bold());
-    println!("{}", "─".repeat(40));
+    println!("{}", format!("📊 Summary ({})", label).bold());
+    println!("{}", "─".repeat(50));
+    println!("  Period:          {}", label.cyan());
+    println!("  Days with data:  {}", daily.len().to_string().cyan());
     println!("  Total saved:     {}", format_tokens(total_saved).bright_green());
+    println!("  Total input:     {}", format_tokens(total_input).yellow());
     println!("  Commands:        {}", format_number(total_commands).cyan());
     println!("  Avg efficiency:  {}%", format!("{:.1}", avg_percent).bright_green());
     println!();
     println!("  {}", render_efficiency_bar(avg_percent));
     println!();
 
+    // Period suggestions
+    println!("{}", "📅 Other periods:".dimmed());
+    println!("  {} -T 1d (24h) | -T 7d (week) | -T 90d (3 months) | -T all", "→".dimmed());
+    println!();
+
     Ok(())
 }
 
 /// Show recent command history.
-fn show_gain_history(db: &TrackingDb) -> Result<()> {
-    let history = db.get_history(20)?;
+fn show_gain_history(db: &TrackingDb, limit: usize, days: u32, period: &str) -> Result<()> {
+    let history = db.get_history_with_period(limit, days)?;
+    let label = period_label(period);
 
     println!();
-    println!("{}", "📜 WTK Command History".bold());
-    println!("{}", "═".repeat(72));
+    println!("{}", format!("📜 WTK Command History - {}", label).bold());
+    println!("{}", "═".repeat(76));
     println!();
 
     if history.is_empty() {
         println!("{}", "  No commands tracked yet.".yellow());
+        println!();
+        println!("  {}", "Available options:".dimmed());
+        println!("    {} -T 1d | -T 7d | -T 30d | -T all", "Period:".dimmed());
+        println!("    {} -n 50 (show 50 entries)", "Limit:".dimmed());
+        println!("    {} wtk gain --history -T 7d -n 50", "Example:".dimmed());
         return Ok(());
     }
 
     println!(
-        "  {:19}  {:28}  {:>8}  {:>6}",
+        "  {:19}  {:28}  {:>8}  {:>6}  {:>8}",
         "Timestamp".dimmed(),
         "Command".dimmed(),
         "Saved".dimmed(),
-        "%".dimmed()
+        "%".dimmed(),
+        "Filter".dimmed()
     );
-    println!("{}", "─".repeat(72));
+    println!("{}", "─".repeat(76));
 
     let mut total_saved: usize = 0;
     let mut total_input: usize = 0;
@@ -304,12 +374,20 @@ fn show_gain_history(db: &TrackingDb) -> Result<()> {
             pct_str.red()
         };
 
+        // Short filter name
+        let filter_short = if entry.filter_name.len() > 8 {
+            format!("{}...", &entry.filter_name[..5])
+        } else {
+            entry.filter_name.clone()
+        };
+
         println!(
-            "  {}  {:28}  {:>8}  {}",
+            "  {}  {:28}  {:>8}  {}  {:>8}",
             time.dimmed(),
             truncate(&entry.command, 28),
             format_tokens(saved),
-            pct_colored
+            pct_colored,
+            filter_short.dimmed()
         );
     }
 
@@ -320,7 +398,7 @@ fn show_gain_history(db: &TrackingDb) -> Result<()> {
         0.0
     };
 
-    println!("{}", "─".repeat(72));
+    println!("{}", "─".repeat(76));
     println!(
         "  {:19}  {:28}  {:>8}  {:.1}%",
         "",
@@ -328,6 +406,11 @@ fn show_gain_history(db: &TrackingDb) -> Result<()> {
         format_tokens(total_saved).bright_green(),
         avg_percent
     );
+    println!();
+
+    // Period suggestions
+    println!("{}", "📅 Options:".dimmed());
+    println!("  {} -T 1d | -T 7d | -T 90d | -T all    {} -n 50", "Period:".dimmed(), "Limit:".dimmed());
     println!();
     Ok(())
 }

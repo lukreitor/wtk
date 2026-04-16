@@ -4,8 +4,8 @@
     <strong>CLI proxy that reduces LLM token consumption by 60-90% on Windows</strong>
   </p>
   <p align="center">
-    <a href="https://github.com/user/wtk/actions"><img src="https://github.com/user/wtk/workflows/CI/badge.svg" alt="CI Status"></a>
-    <a href="https://github.com/user/wtk/releases"><img src="https://img.shields.io/github/v/release/user/wtk" alt="Release"></a>
+    <a href="https://github.com/Lukreitor/wtk/actions"><img src="https://github.com/Lukreitor/wtk/workflows/CI/badge.svg" alt="CI Status"></a>
+    <a href="https://github.com/Lukreitor/wtk/releases"><img src="https://img.shields.io/github/v/release/Lukreitor/wtk" alt="Release"></a>
     <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
     <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/rust-1.75+-orange.svg" alt="Rust 1.75+"></a>
     <img src="https://img.shields.io/badge/platform-Windows-blue.svg" alt="Platform: Windows">
@@ -41,11 +41,11 @@
 
 ### From Releases (Recommended)
 
-Download the latest release from [GitHub Releases](https://github.com/user/wtk/releases):
+Download the latest release from [GitHub Releases](https://github.com/Lukreitor/wtk/releases):
 
 ```powershell
 # PowerShell
-Invoke-WebRequest -Uri "https://github.com/user/wtk/releases/latest/download/wtk-windows-x64.zip" -OutFile "wtk.zip"
+Invoke-WebRequest -Uri "https://github.com/Lukreitor/wtk/releases/latest/download/wtk-windows-x64.zip" -OutFile "wtk.zip"
 Expand-Archive -Path "wtk.zip" -DestinationPath "$env:LOCALAPPDATA\wtk"
 $env:PATH += ";$env:LOCALAPPDATA\wtk"
 ```
@@ -54,7 +54,7 @@ $env:PATH += ";$env:LOCALAPPDATA\wtk"
 
 ```bash
 # Clone the repository
-git clone https://github.com/user/wtk.git
+git clone https://github.com/Lukreitor/wtk.git
 cd wtk
 
 # Build release binary
@@ -320,7 +320,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ```bash
 # Clone
-git clone https://github.com/user/wtk.git
+git clone https://github.com/Lukreitor/wtk.git
 cd wtk
 
 # Build

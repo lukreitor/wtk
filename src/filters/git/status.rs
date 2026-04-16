@@ -141,3 +141,92 @@ fn compact_tracking_line(line: &str) -> String {
         String::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_clean_status() {
+        let output = "On branch main\nnothing to commit, working tree clean\n";
+        let result = filter_status_output(output);
+        assert!(result.contains("Clean") || result.contains("@ main"));
+    }
+
+    #[test]
+    fn test_modified_files() {
+        let output = r#"On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+        modified:   src/main.rs
+        modified:   Cargo.toml
+"#;
+        let result = filter_status_output(output);
+        assert!(result.contains("Modified"));
+        assert!(result.contains("src/main.rs"));
+    }
+
+    #[test]
+    fn test_staged_files() {
+        let output = r#"On branch feature
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   src/new.rs
+        modified:   src/lib.rs
+"#;
+        let result = filter_status_output(output);
+        assert!(result.contains("Staged"));
+        assert!(result.contains("src/new.rs"));
+    }
+
+    #[test]
+    fn test_untracked_files() {
+        let output = r#"On branch main
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	temp.txt
+	debug.log
+"#;
+        let result = filter_status_output(output);
+        assert!(result.contains("Untracked"));
+    }
+
+    #[test]
+    fn test_branch_ahead() {
+        let result = compact_tracking_line("Your branch is ahead of 'origin/main' by 3 commits.");
+        assert_eq!(result, "↑3");
+    }
+
+    #[test]
+    fn test_branch_behind() {
+        let result = compact_tracking_line("Your branch is behind 'origin/main' by 2 commits.");
+        assert_eq!(result, "↓2");
+    }
+
+    #[test]
+    fn test_branch_synced() {
+        let result = compact_tracking_line("Your branch is up to date with 'origin/main'.");
+        assert_eq!(result, "✓ synced");
+    }
+
+    #[test]
+    fn test_compression_ratio() {
+        let raw = r#"On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   src/main.rs
+        modified:   src/lib.rs
+        modified:   Cargo.toml
+
+no changes added to commit (use "git add" and/or "git commit -a")
+"#;
+        let filtered = filter_status_output(raw);
+
+        // Should achieve significant compression
+        let ratio = filtered.len() as f64 / raw.len() as f64;
+        assert!(ratio < 0.5, "Expected >50% compression, got {:.1}%", (1.0 - ratio) * 100.0);
+    }
+}

@@ -4,7 +4,7 @@
 use super::dotnet::DotnetFilter;
 use super::git::GitFilter;
 use super::github::GhFilter;
-use super::network::{CurlFilter, ScpFilter, SshFilter};
+use super::network::{CurlFilter, ScpFilter, SshFilter, SftpFilter};
 use super::node::NodePackageFilter;
 use super::prisma::PrismaFilter;
 use super::typescript::TscFilter;
@@ -21,6 +21,7 @@ use super::docker::{DockerFilter, DockerComposeFilter};
 use super::kubernetes::{KubectlFilter, HelmFilter};
 use super::terraform::TerraformFilter;
 use super::cloud::{AzFilter, AwsFilter, GcloudFilter};
+use super::ansible::AnsibleFilter;
 
 // Testing & Linting filters
 use super::test::{VitestFilter, JestFilter, PlaywrightFilter};
@@ -65,6 +66,7 @@ impl FilterRegistry {
             Box::new(CurlFilter),
             Box::new(SshFilter),
             Box::new(ScpFilter),
+            Box::new(SftpFilter),
             // Windows system commands
             Box::new(WindowsSystemFilter),
 
@@ -89,6 +91,7 @@ impl FilterRegistry {
             Box::new(AzFilter),
             Box::new(AwsFilter),
             Box::new(GcloudFilter),
+            Box::new(AnsibleFilter),
 
             // Testing & Linting filters
             Box::new(VitestFilter),

@@ -290,3 +290,93 @@ fn filter_scp_output(stdout: &str, stderr: &str) -> String {
         result.join("\n")
     }
 }
+
+/// Filter for SFTP/psftp commands.
+pub struct SftpFilter;
+
+impl Filter for SftpFilter {
+    fn name(&self) -> &'static str {
+        "sftp"
+    }
+
+    fn matches(&self, command: &str) -> bool {
+        matches!(command, "sftp" | "psftp" | "psftp.exe")
+    }
+
+    fn execute(&self, command: &str, args: &[String]) -> Result<FilterResult> {
+        let start = Instant::now();
+
+        let output = Command::new(command)
+            .args(args)
+            .output()?;
+
+        let exec_time_ms = start.elapsed().as_millis() as u64;
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let input_chars = stdout.len() + stderr.len();
+
+        let filtered = filter_sftp_output(&stdout, &stderr);
+
+        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+    }
+
+    fn priority(&self) -> u8 {
+        80
+    }
+}
+
+fn filter_sftp_output(stdout: &str, stderr: &str) -> String {
+    let mut result = Vec::new();
+    let mut transfers = 0;
+    let mut errors = 0;
+
+    for line in stderr.lines().chain(stdout.lines()) {
+        let trimmed = line.trim();
+
+        if trimmed.is_empty() || trimmed.starts_with("sftp>") || trimmed.starts_with("psftp>") {
+            continue;
+        }
+
+        // Error messages
+        if trimmed.contains("Permission denied") ||
+           trimmed.contains("No such file") ||
+           trimmed.contains("error") ||
+           trimmed.contains("failed") {
+            result.push(format!("✗ {}", trimmed));
+            errors += 1;
+            continue;
+        }
+
+        // Transfer completion
+        if trimmed.contains("100%") || trimmed.contains("transferred") {
+            transfers += 1;
+            continue;
+        }
+
+        // Directory listing - compact it
+        if trimmed.starts_with("-") || trimmed.starts_with("d") || trimmed.starts_with("l") {
+            // This is ls -l output, keep it
+            result.push(trimmed.to_string());
+        }
+    }
+
+    // Summary
+    if transfers > 0 || errors > 0 {
+        let status = if errors > 0 {
+            format!("✗ {} errors", errors)
+        } else {
+            format!("✓ {} transfers", transfers)
+        };
+        result.insert(0, status);
+    }
+
+    if result.is_empty() {
+        "✓ sftp session completed".to_string()
+    } else if result.len() > 25 {
+        let mut truncated: Vec<String> = result.into_iter().take(20).collect();
+        truncated.push("... more entries".to_string());
+        truncated.join("\n")
+    } else {
+        result.join("\n")
+    }
+}

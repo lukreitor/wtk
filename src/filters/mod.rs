@@ -24,6 +24,7 @@ pub mod docker;
 pub mod kubernetes;
 pub mod terraform;
 pub mod cloud;
+pub mod ansible;
 
 // Testing & Linting
 pub mod test;
@@ -45,7 +46,7 @@ pub mod frameworks;
 pub use dotnet::DotnetFilter;
 pub use git::GitFilter;
 pub use github::GhFilter;
-pub use network::{CurlFilter, ScpFilter, SshFilter};
+pub use network::{CurlFilter, ScpFilter, SshFilter, SftpFilter};
 pub use node::NodePackageFilter;
 pub use prisma::PrismaFilter;
 pub use registry::FilterRegistry;
@@ -64,6 +65,7 @@ pub use docker::{DockerFilter, DockerComposeFilter};
 pub use kubernetes::{KubectlFilter, HelmFilter};
 pub use terraform::TerraformFilter;
 pub use cloud::{AzFilter, AwsFilter, GcloudFilter};
+pub use ansible::AnsibleFilter;
 
 // Testing & Linting exports
 pub use test::{VitestFilter, JestFilter, PlaywrightFilter};

@@ -365,13 +365,117 @@ pub fn init(options: InitOptions) -> Result<()> {
 
 /// Discover missed WTK savings opportunities.
 pub fn discover() -> Result<()> {
-    println!("{}", "WTK Discover - Analyzing missed opportunities...".bold());
     println!();
-    println!("{}", "This feature will analyze your shell history to find".dimmed());
-    println!("{}", "commands that could benefit from WTK filtering.".dimmed());
+    println!("{}", "🔍 WTK Discover - Analyzing Shell History".bold());
+    println!("{}", "═".repeat(60));
     println!();
-    println!("{}", "Coming soon!".yellow());
 
+    let registry = FilterRegistry::new();
+    let mut opportunities: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut total_commands = 0;
+
+    // Read PowerShell history
+    if let Some(appdata) = dirs::data_local_dir() {
+        let ps_history = appdata
+            .join("Microsoft")
+            .join("Windows")
+            .join("PowerShell")
+            .join("PSReadLine")
+            .join("ConsoleHost_history.txt");
+
+        if ps_history.exists() {
+            if let Ok(content) = std::fs::read_to_string(&ps_history) {
+                for line in content.lines().take(1000) {
+                    let trimmed = line.trim();
+                    if trimmed.is_empty() || trimmed.starts_with('#') {
+                        continue;
+                    }
+
+                    // Skip if already using wtk
+                    if trimmed.starts_with("wtk ") {
+                        continue;
+                    }
+
+                    // Get first word (command)
+                    let cmd = trimmed.split_whitespace().next().unwrap_or("");
+
+                    // Check if we have a filter for this
+                    if registry.find_filter(cmd).is_some() {
+                        *opportunities.entry(cmd.to_string()).or_insert(0) += 1;
+                        total_commands += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    if opportunities.is_empty() {
+        println!("  {} No missed opportunities found!", "✓".green());
+        println!();
+        println!("  {}", "Either you're already using WTK for everything,".dimmed());
+        println!("  {}", "or your shell history is empty/inaccessible.".dimmed());
+        println!();
+        return Ok(());
+    }
+
+    // Sort by count
+    let mut sorted: Vec<_> = opportunities.iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(a.1));
+
+    // Calculate estimated savings
+    let estimated_savings_per_cmd = 500; // Average chars saved per command
+    let total_estimated_savings = total_commands * estimated_savings_per_cmd;
+
+    println!("  Found {} commands that could use WTK:", total_commands.to_string().cyan());
+    println!();
+    println!("{}", "─".repeat(60));
+    println!(
+        "  {:25}  {:>8}  {:>15}",
+        "Command".dimmed(),
+        "Count".dimmed(),
+        "Est. Savings".dimmed()
+    );
+    println!("{}", "─".repeat(60));
+
+    for (cmd, count) in sorted.iter().take(15) {
+        let est_savings = *count * estimated_savings_per_cmd;
+        println!(
+            "  {:25}  {:>8}  {:>15}",
+            cmd,
+            count.to_string().cyan(),
+            format_tokens(est_savings).green()
+        );
+    }
+
+    if sorted.len() > 15 {
+        println!("  ... and {} more commands", sorted.len() - 15);
+    }
+
+    println!("{}", "─".repeat(60));
+    println!(
+        "  {:25}  {:>8}  {:>15}",
+        "TOTAL".bold(),
+        total_commands.to_string().cyan(),
+        format_tokens(total_estimated_savings).bright_green()
+    );
+    println!();
+
+    // Recommendations
+    println!("{}", "💡 Recommendations".bold());
+    println!("{}", "─".repeat(60));
+    println!("  1. Install Claude Code hooks: {}", "wtk init --claude-code".cyan());
+    println!("  2. Or prefix commands manually: {}", "wtk <command>".cyan());
+    println!();
+
+    if let Some((top_cmd, _)) = sorted.first() {
+        println!("  {} Most used: {} - try: {}",
+            "→".yellow(),
+            top_cmd.bright_white(),
+            format!("wtk {}", top_cmd).cyan()
+        );
+    }
+
+    println!();
     Ok(())
 }
 

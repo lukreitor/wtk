@@ -25,6 +25,7 @@ pub mod kubernetes;
 pub mod terraform;
 pub mod cloud;
 pub mod ansible;
+pub mod devops;
 
 // Testing & Linting
 pub mod test;
@@ -66,6 +67,13 @@ pub use kubernetes::{KubectlFilter, HelmFilter};
 pub use terraform::TerraformFilter;
 pub use cloud::{AzFilter, AwsFilter, GcloudFilter};
 pub use ansible::AnsibleFilter;
+pub use devops::{
+    VagrantFilter, PackerFilter, PulumiFilter, ServerlessFilter,
+    VercelFilter, NetlifyFilter, RailwayFilter, FlyctlFilter, RenderFilter, HerokuFilter,
+    MinikubeFilter, KindFilter, K3sFilter, SkaffoldFilter, TiltFilter,
+    ArgoCDFilter, IstioFilter, LinkerdFilter,
+    CloudFoundryFilter, OpenShiftFilter, EksctlFilter,
+};
 
 // Testing & Linting exports
 pub use test::{VitestFilter, JestFilter, PlaywrightFilter};

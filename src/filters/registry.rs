@@ -22,6 +22,13 @@ use super::kubernetes::{KubectlFilter, HelmFilter};
 use super::terraform::TerraformFilter;
 use super::cloud::{AzFilter, AwsFilter, GcloudFilter};
 use super::ansible::AnsibleFilter;
+use super::devops::{
+    VagrantFilter, PackerFilter, PulumiFilter, ServerlessFilter,
+    VercelFilter, NetlifyFilter, RailwayFilter, FlyctlFilter, RenderFilter, HerokuFilter,
+    MinikubeFilter, KindFilter, K3sFilter, SkaffoldFilter, TiltFilter,
+    ArgoCDFilter, IstioFilter, LinkerdFilter,
+    CloudFoundryFilter, OpenShiftFilter, EksctlFilter,
+};
 
 // Testing & Linting filters
 use super::test::{VitestFilter, JestFilter, PlaywrightFilter};
@@ -92,6 +99,28 @@ impl FilterRegistry {
             Box::new(AwsFilter),
             Box::new(GcloudFilter),
             Box::new(AnsibleFilter),
+            // Phase 2: More DevOps tools
+            Box::new(VagrantFilter),
+            Box::new(PackerFilter),
+            Box::new(PulumiFilter),
+            Box::new(ServerlessFilter),
+            Box::new(VercelFilter),
+            Box::new(NetlifyFilter),
+            Box::new(RailwayFilter),
+            Box::new(FlyctlFilter),
+            Box::new(RenderFilter),
+            Box::new(HerokuFilter),
+            Box::new(MinikubeFilter),
+            Box::new(KindFilter),
+            Box::new(K3sFilter),
+            Box::new(SkaffoldFilter),
+            Box::new(TiltFilter),
+            Box::new(ArgoCDFilter),
+            Box::new(IstioFilter),
+            Box::new(LinkerdFilter),
+            Box::new(CloudFoundryFilter),
+            Box::new(OpenShiftFilter),
+            Box::new(EksctlFilter),
 
             // Testing & Linting filters
             Box::new(VitestFilter),

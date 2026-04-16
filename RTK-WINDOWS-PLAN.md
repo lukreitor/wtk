@@ -10,7 +10,7 @@
 
 ---
 
-## Current Features (v0.3.0)
+## Current Features (v0.4.0)
 
 ### Filters (50+ categories, 200+ commands)
 
@@ -39,6 +39,13 @@
 | **Network** | curl, ssh, scp, sftp | Done |
 | **Frameworks** | next, nx, turbo, vite | Done |
 | **Prisma** | prisma | Done |
+| **IaC** | vagrant, packer, pulumi | Done |
+| **Serverless** | serverless (sls), vercel, netlify, railway, flyctl, render, heroku | Done |
+| **Local K8s** | minikube, kind, k3s | Done |
+| **K8s Dev** | skaffold, tilt | Done |
+| **GitOps** | argocd | Done |
+| **Service Mesh** | istioctl, linkerd | Done |
+| **Enterprise K8s** | cf, oc, eksctl | Done |
 
 ### Meta Commands
 - `wtk gain` - Token savings summary
@@ -56,35 +63,9 @@
 
 All Phase 1 items have been implemented. See Current Features section above.
 
-### Phase 2: More DevOps Tools (v0.4.0)
+### Phase 2: More DevOps Tools (v0.4.0) - COMPLETED
 
-| Tool | Description | Est. Savings |
-|------|-------------|--------------|
-| `vagrant` | VM management | 75% |
-| `packer` | Image building | 80% |
-| `pulumi` | IaC | 80% |
-| `cdktf` | CDK for Terraform | 80% |
-| `serverless` | Serverless framework | 75% |
-| `sam` | AWS SAM CLI | 75% |
-| `flyctl` | Fly.io CLI | 70% |
-| `railway` | Railway CLI | 70% |
-| `render` | Render CLI | 70% |
-| `vercel` | Vercel CLI | 70% |
-| `netlify` | Netlify CLI | 70% |
-| `heroku` | Heroku CLI | 75% |
-| `cf` | Cloud Foundry CLI | 75% |
-| `oc` | OpenShift CLI | 75% |
-| `eksctl` | EKS CLI | 75% |
-| `gke` | GKE commands | 75% |
-| `aks` | AKS commands | 75% |
-| `minikube` | Local Kubernetes | 70% |
-| `kind` | Kubernetes in Docker | 70% |
-| `k3s` | Lightweight k8s | 70% |
-| `skaffold` | Kubernetes dev | 75% |
-| `tilt` | Local dev | 70% |
-| `argocd` | GitOps | 75% |
-| `istioctl` | Service mesh | 75% |
-| `linkerd` | Service mesh | 75% |
+All Phase 2 items have been implemented. See Current Features section above.
 
 ### Phase 3: More Languages (v0.5.0)
 
@@ -216,7 +197,7 @@ Want to help WTK surpass RTK? Here's how:
 
 | Metric | Current | Goal |
 |--------|---------|------|
-| Commands supported | 250+ | **500+** |
+| Commands supported | 300+ | **500+** |
 | Average savings | 70% | **80%** |
 | Windows coverage | 95% | **99%** |
 | Installation steps | 1 | **1** |
@@ -228,6 +209,7 @@ Want to help WTK surpass RTK? Here's how:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| v0.4.0 | 2026-04-16 | **Phase 2 Complete**: +21 DevOps tools (vagrant, packer, pulumi, serverless, PaaS CLIs, K8s ecosystem) |
 | v0.3.0 | 2026-04-16 | **Phase 1 Complete**: 25 CMD commands, 29 PowerShell cmdlets |
 | v0.2.4 | 2026-04-16 | Time period options (-T), history limit (-n) |
 | v0.2.3 | 2026-04-16 | Ansible filter, SFTP support, `wtk discover` |

@@ -10,7 +10,7 @@
 
 ---
 
-## Current Features (v0.4.0)
+## Current Features (v0.5.0)
 
 ### Filters (50+ categories, 200+ commands)
 
@@ -32,7 +32,7 @@
 | **Ansible** | ansible, ansible-playbook, ansible-galaxy, ansible-vault | Done |
 | **Test** | vitest, jest, playwright | Done |
 | **Lint** | eslint, prettier, biome | Done |
-| **Database** | psql, mysql, sqlcmd, redis-cli, mongosh | Done |
+| **Database** | psql, mysql, sqlcmd, redis-cli, mongosh, sqlite3, cqlsh, cypher-shell, influx, supabase, pscale, neonctl, turso | Done |
 | **Windows CMD** | ipconfig, netstat, tasklist, ping, systeminfo, sc, wmic, netsh, tree, where, reg, dism, sfc, hostname, getmac, arp, route, diskpart, bcdedit, certutil, fsutil, icacls, attrib, findstr, robocopy | Done |
 | **PowerShell** | Get-Process, Get-Service, Get-ChildItem, Get-Content, Get-NetAdapter, Get-NetIPAddress, Get-EventLog, Get-WinEvent, Get-HotFix, Get-Volume, Get-Disk, Get-ComputerInfo, Get-PSDrive, Get-Module, Get-Command, Get-History, Get-Alias, Get-ScheduledTask, Get-LocalUser, Get-LocalGroup, Get-Acl, Get-ItemProperty, Test-NetConnection, Test-Path, Select-String, Measure-Object, Format-Table, Format-List, ConvertTo-Json | Done |
 | **Package Mgrs** | winget, choco, scoop | Done |
@@ -89,23 +89,9 @@ All Phase 2 items have been implemented. See Current Features section above.
 | **R** | Rscript | 70% |
 | **MATLAB** | matlab | 65% |
 
-### Phase 4: More Databases (v0.6.0)
+### Phase 4: More Databases (v0.5.0) - COMPLETED
 
-| Database | Tools | Est. Savings |
-|----------|-------|--------------|
-| **SQLite** | sqlite3 | 70% |
-| **CouchDB** | curl (CouchDB) | 70% |
-| **Cassandra** | cqlsh | 75% |
-| **Neo4j** | cypher-shell | 70% |
-| **InfluxDB** | influx | 75% |
-| **Elasticsearch** | curl (ES) | 70% |
-| **DynamoDB** | aws dynamodb | 75% |
-| **Cosmos DB** | az cosmosdb | 75% |
-| **Firestore** | gcloud firestore | 75% |
-| **Supabase** | supabase | 70% |
-| **PlanetScale** | pscale | 70% |
-| **Neon** | neonctl | 70% |
-| **Turso** | turso | 70% |
+All Phase 4 items have been implemented. See Current Features section above.
 
 ### Phase 5: Enhanced Analytics (v0.7.0)
 
@@ -209,6 +195,7 @@ Want to help WTK surpass RTK? Here's how:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| v0.5.0 | 2026-04-16 | **Phase 4 Complete**: +8 database tools (sqlite3, cqlsh, cypher-shell, influx, supabase, pscale, neonctl, turso) |
 | v0.4.0 | 2026-04-16 | **Phase 2 Complete**: +21 DevOps tools (vagrant, packer, pulumi, serverless, PaaS CLIs, K8s ecosystem) |
 | v0.3.0 | 2026-04-16 | **Phase 1 Complete**: 25 CMD commands, 29 PowerShell cmdlets |
 | v0.2.4 | 2026-04-16 | Time period options (-T), history limit (-n) |

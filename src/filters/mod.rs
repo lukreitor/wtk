@@ -80,7 +80,11 @@ pub use test::{VitestFilter, JestFilter, PlaywrightFilter};
 pub use lint::{EslintFilter, PrettierFilter, BiomeFilter};
 
 // Database exports
-pub use database::{PsqlFilter, MysqlFilter, SqlcmdFilter, RedisCliFilter, MongoshFilter};
+pub use database::{
+    PsqlFilter, MysqlFilter, SqlcmdFilter, RedisCliFilter, MongoshFilter,
+    Sqlite3Filter, CqlshFilter, CypherShellFilter, InfluxFilter,
+    SupabaseFilter, PscaleFilter, NeonFilter, TursoFilter,
+};
 
 // Package manager exports
 pub use winpkg::{WingetFilter, ChocoFilter, ScoopFilter};

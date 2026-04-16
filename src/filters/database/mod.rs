@@ -1,4 +1,6 @@
-//! Database CLI filters (psql, mysql, sqlcmd, redis-cli, mongosh).
+//! Database CLI filters.
+//! Phase 1: psql, mysql, sqlcmd, redis-cli, mongosh
+//! Phase 4: sqlite3, cqlsh, cypher-shell, influx, supabase, pscale, neonctl, turso
 
 use anyhow::Result;
 use regex::Regex;
@@ -475,6 +477,686 @@ fn truncate(s: &str, max: usize) -> String {
     if s.len() <= max {
         s.to_string()
     } else {
-        format!("{}...", &s[..max - 3])
+        format!("{}...", &s[..max.saturating_sub(3)])
+    }
+}
+
+// ============================================================================
+// Phase 4: Additional Database Filters
+// ============================================================================
+
+/// Filter for SQLite3 commands.
+pub struct Sqlite3Filter;
+
+impl Filter for Sqlite3Filter {
+    fn name(&self) -> &'static str { "sqlite3" }
+
+    fn matches(&self, command: &str) -> bool {
+        let cmd = command.to_lowercase();
+        cmd == "sqlite3" || cmd == "sqlite3.exe"
+    }
+
+    fn execute(&self, command: &str, args: &[String]) -> Result<FilterResult> {
+        let start = Instant::now();
+        let output = Command::new(command).args(args).output()?;
+        let exec_time_ms = start.elapsed().as_millis() as u64;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let input_chars = stdout.len() + stderr.len();
+
+        let filtered = filter_sqlite3(&stdout, &stderr, args);
+        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+    }
+
+    fn priority(&self) -> u8 { 85 }
+}
+
+fn filter_sqlite3(stdout: &str, stderr: &str, args: &[String]) -> String {
+    let combined = format!("{}\n{}", stdout, stderr);
+
+    // .tables command
+    if args.iter().any(|a| a == ".tables") {
+        let tables: Vec<&str> = stdout.split_whitespace().collect();
+        return format!("{} tables: {}", tables.len(), tables.join(", "));
+    }
+
+    // .schema command
+    if args.iter().any(|a| a == ".schema") {
+        let creates = stdout.matches("CREATE").count();
+        return format!("{} schema definitions", creates);
+    }
+
+    // Check for errors
+    if combined.contains("Error:") || combined.contains("error:") {
+        let err_re = Regex::new(r"(?i)error:\s*(.+)").unwrap();
+        if let Some(caps) = err_re.captures(&combined) {
+            return format!("X {}", truncate(&caps[1], 60));
+        }
+    }
+
+    filter_query_result(stdout, stderr)
+}
+
+/// Filter for Cassandra cqlsh commands.
+pub struct CqlshFilter;
+
+impl Filter for CqlshFilter {
+    fn name(&self) -> &'static str { "cqlsh" }
+
+    fn matches(&self, command: &str) -> bool {
+        let cmd = command.to_lowercase();
+        cmd == "cqlsh" || cmd == "cqlsh.exe"
+    }
+
+    fn execute(&self, command: &str, args: &[String]) -> Result<FilterResult> {
+        let start = Instant::now();
+        let output = Command::new(command).args(args).output()?;
+        let exec_time_ms = start.elapsed().as_millis() as u64;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let input_chars = stdout.len() + stderr.len();
+
+        let filtered = filter_cqlsh(&stdout, &stderr);
+        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+    }
+
+    fn priority(&self) -> u8 { 85 }
+}
+
+fn filter_cqlsh(stdout: &str, stderr: &str) -> String {
+    let combined = format!("{}\n{}", stdout, stderr);
+
+    // Row count
+    let row_re = Regex::new(r"\((\d+) rows?\)").unwrap();
+    if let Some(caps) = row_re.captures(&combined) {
+        return format!("{} rows", &caps[1]);
+    }
+
+    // Check for errors
+    if combined.contains("Error") || combined.contains("error") {
+        let err_re = Regex::new(r"(?i)(?:error|exception)[:\s]+(.+)").unwrap();
+        if let Some(caps) = err_re.captures(&combined) {
+            return format!("X {}", truncate(&caps[1], 60));
+        }
+    }
+
+    filter_query_result(stdout, stderr)
+}
+
+/// Filter for Neo4j cypher-shell commands.
+pub struct CypherShellFilter;
+
+impl Filter for CypherShellFilter {
+    fn name(&self) -> &'static str { "cypher-shell" }
+
+    fn matches(&self, command: &str) -> bool {
+        let cmd = command.to_lowercase();
+        cmd == "cypher-shell" || cmd == "cypher-shell.exe"
+    }
+
+    fn execute(&self, command: &str, args: &[String]) -> Result<FilterResult> {
+        let start = Instant::now();
+        let output = Command::new(command).args(args).output()?;
+        let exec_time_ms = start.elapsed().as_millis() as u64;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let input_chars = stdout.len() + stderr.len();
+
+        let filtered = filter_cypher(&stdout, &stderr);
+        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+    }
+
+    fn priority(&self) -> u8 { 85 }
+}
+
+fn filter_cypher(stdout: &str, stderr: &str) -> String {
+    let combined = format!("{}\n{}", stdout, stderr);
+
+    // Node/relationship counts
+    let nodes_re = Regex::new(r"(\d+) nodes? (created|deleted)").unwrap();
+    let rels_re = Regex::new(r"(\d+) relationships? (created|deleted)").unwrap();
+    let props_re = Regex::new(r"(\d+) properties set").unwrap();
+
+    let mut results = Vec::new();
+    if let Some(caps) = nodes_re.captures(&combined) {
+        results.push(format!("{} nodes {}", &caps[1], &caps[2]));
+    }
+    if let Some(caps) = rels_re.captures(&combined) {
+        results.push(format!("{} rels {}", &caps[1], &caps[2]));
+    }
+    if let Some(caps) = props_re.captures(&combined) {
+        results.push(format!("{} props set", &caps[1]));
+    }
+
+    if !results.is_empty() {
+        return results.join(", ");
+    }
+
+    // Count rows in result
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.starts_with('+') && !l.starts_with('|'))
+        .collect();
+
+    if lines.len() > 1 {
+        return format!("{} rows", lines.len() - 1);
+    }
+
+    filter_generic(stdout, stderr)
+}
+
+/// Filter for InfluxDB CLI commands.
+pub struct InfluxFilter;
+
+impl Filter for InfluxFilter {
+    fn name(&self) -> &'static str { "influx" }
+
+    fn matches(&self, command: &str) -> bool {
+        let cmd = command.to_lowercase();
+        cmd == "influx" || cmd == "influx.exe"
+    }
+
+    fn execute(&self, command: &str, args: &[String]) -> Result<FilterResult> {
+        let subcommand = args.first().map(|s| s.as_str()).unwrap_or("");
+
+        let start = Instant::now();
+        let output = Command::new(command).args(args).output()?;
+        let exec_time_ms = start.elapsed().as_millis() as u64;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let input_chars = stdout.len() + stderr.len();
+
+        let filtered = match subcommand {
+            "query" => filter_influx_query(&stdout, &stderr),
+            "write" => filter_influx_write(&stdout, &stderr),
+            "bucket" => filter_influx_bucket(&stdout, args),
+            "org" => filter_influx_org(&stdout),
+            _ => filter_generic(&stdout, &stderr),
+        };
+
+        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+    }
+
+    fn priority(&self) -> u8 { 85 }
+}
+
+fn filter_influx_query(stdout: &str, stderr: &str) -> String {
+    let lines: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+
+    if lines.is_empty() {
+        return "No results".to_string();
+    }
+
+    // CSV format - first line is header
+    let data_rows = lines.len().saturating_sub(1);
+    let mut result = vec![format!("{} rows", data_rows)];
+
+    for line in lines.iter().take(10) {
+        result.push(format!("  {}", truncate(line, 70)));
+    }
+
+    if lines.len() > 10 {
+        result.push(format!("  ...+{} more", lines.len() - 10));
+    }
+
+    if !stderr.is_empty() && stderr.contains("Error") {
+        result.push(format!("X {}", truncate(stderr.lines().next().unwrap_or(""), 50)));
+    }
+
+    result.join("\n")
+}
+
+fn filter_influx_write(stdout: &str, stderr: &str) -> String {
+    let combined = format!("{}\n{}", stdout, stderr);
+
+    if combined.contains("Error") || combined.contains("error") {
+        let err_re = Regex::new(r"(?i)error[:\s]+(.+)").unwrap();
+        if let Some(caps) = err_re.captures(&combined) {
+            return format!("X {}", truncate(&caps[1], 60));
+        }
+        return "X Write failed".to_string();
+    }
+
+    "Written".to_string()
+}
+
+fn filter_influx_bucket(stdout: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let buckets: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty() && !l.contains("ID"))
+                .collect();
+            format!("{} buckets", buckets.len())
+        }
+        "create" => {
+            if stdout.contains("ID") {
+                "Bucket created".to_string()
+            } else {
+                truncate(stdout, 100)
+            }
+        }
+        _ => truncate(stdout, 200)
+    }
+}
+
+fn filter_influx_org(stdout: &str) -> String {
+    let orgs: Vec<&str> = stdout.lines()
+        .filter(|l| !l.trim().is_empty() && !l.contains("ID"))
+        .collect();
+    format!("{} organizations", orgs.len())
+}
+
+/// Filter for Supabase CLI commands.
+pub struct SupabaseFilter;
+
+impl Filter for SupabaseFilter {
+    fn name(&self) -> &'static str { "supabase" }
+
+    fn matches(&self, command: &str) -> bool {
+        let cmd = command.to_lowercase();
+        cmd == "supabase" || cmd == "supabase.exe"
+    }
+
+    fn execute(&self, command: &str, args: &[String]) -> Result<FilterResult> {
+        let subcommand = args.first().map(|s| s.as_str()).unwrap_or("");
+
+        let start = Instant::now();
+        let output = Command::new(command).args(args).output()?;
+        let exec_time_ms = start.elapsed().as_millis() as u64;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let input_chars = stdout.len() + stderr.len();
+
+        let filtered = match subcommand {
+            "start" => filter_supabase_start(&stdout, &stderr),
+            "stop" => "Stopped".to_string(),
+            "status" => filter_supabase_status(&stdout),
+            "db" => filter_supabase_db(&stdout, &stderr, args),
+            "migration" => filter_supabase_migration(&stdout, &stderr, args),
+            "gen" => filter_supabase_gen(&stdout, &stderr),
+            _ => filter_generic(&stdout, &stderr),
+        };
+
+        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+    }
+
+    fn priority(&self) -> u8 { 85 }
+}
+
+fn filter_supabase_start(stdout: &str, stderr: &str) -> String {
+    let combined = format!("{}\n{}", stdout, stderr);
+
+    if combined.contains("Started") || combined.contains("running") {
+        let url_re = Regex::new(r"(http://\S+)").unwrap();
+        if let Some(caps) = url_re.captures(&combined) {
+            return format!("Started: {}", &caps[1]);
+        }
+        return "Started".to_string();
+    }
+
+    filter_generic(stdout, stderr)
+}
+
+fn filter_supabase_status(stdout: &str) -> String {
+    let running = stdout.matches("running").count();
+    let stopped = stdout.matches("stopped").count();
+
+    format!("{} running, {} stopped", running, stopped)
+}
+
+fn filter_supabase_db(stdout: &str, stderr: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "push" => {
+            if stdout.contains("Finished") || stdout.contains("success") {
+                "DB pushed".to_string()
+            } else {
+                filter_generic(stdout, stderr)
+            }
+        }
+        "reset" => "DB reset".to_string(),
+        "diff" => {
+            let changes = stdout.matches("ALTER").count() + stdout.matches("CREATE").count() + stdout.matches("DROP").count();
+            if changes > 0 {
+                format!("{} changes", changes)
+            } else {
+                "No changes".to_string()
+            }
+        }
+        _ => filter_generic(stdout, stderr)
+    }
+}
+
+fn filter_supabase_migration(stdout: &str, stderr: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let migrations: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty())
+                .collect();
+            format!("{} migrations", migrations.len())
+        }
+        "up" => {
+            if stdout.contains("applied") || stdout.is_empty() {
+                "Migrations applied".to_string()
+            } else {
+                filter_generic(stdout, stderr)
+            }
+        }
+        _ => filter_generic(stdout, stderr)
+    }
+}
+
+fn filter_supabase_gen(stdout: &str, stderr: &str) -> String {
+    let combined = format!("{}\n{}", stdout, stderr);
+
+    if combined.contains("Generated") || combined.contains("written") {
+        "Types generated".to_string()
+    } else {
+        filter_generic(stdout, stderr)
+    }
+}
+
+/// Filter for PlanetScale CLI commands.
+pub struct PscaleFilter;
+
+impl Filter for PscaleFilter {
+    fn name(&self) -> &'static str { "pscale" }
+
+    fn matches(&self, command: &str) -> bool {
+        let cmd = command.to_lowercase();
+        cmd == "pscale" || cmd == "pscale.exe"
+    }
+
+    fn execute(&self, command: &str, args: &[String]) -> Result<FilterResult> {
+        let subcommand = args.first().map(|s| s.as_str()).unwrap_or("");
+
+        let start = Instant::now();
+        let output = Command::new(command).args(args).output()?;
+        let exec_time_ms = start.elapsed().as_millis() as u64;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let input_chars = stdout.len() + stderr.len();
+
+        let filtered = match subcommand {
+            "database" => filter_pscale_database(&stdout, args),
+            "branch" => filter_pscale_branch(&stdout, args),
+            "deploy-request" => filter_pscale_deploy(&stdout, args),
+            "connect" => filter_pscale_connect(&stdout, &stderr),
+            _ => filter_generic(&stdout, &stderr),
+        };
+
+        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+    }
+
+    fn priority(&self) -> u8 { 85 }
+}
+
+fn filter_pscale_database(stdout: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let dbs: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty() && !l.contains("NAME"))
+                .collect();
+            format!("{} databases", dbs.len())
+        }
+        "create" => "Database created".to_string(),
+        "delete" => "Database deleted".to_string(),
+        _ => truncate(stdout, 200)
+    }
+}
+
+fn filter_pscale_branch(stdout: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let branches: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty() && !l.contains("NAME"))
+                .collect();
+            format!("{} branches", branches.len())
+        }
+        "create" => "Branch created".to_string(),
+        "delete" => "Branch deleted".to_string(),
+        "diff" => {
+            let changes = stdout.lines().filter(|l| l.starts_with('+') || l.starts_with('-')).count();
+            if changes > 0 {
+                format!("{} changes", changes)
+            } else {
+                "No changes".to_string()
+            }
+        }
+        _ => truncate(stdout, 200)
+    }
+}
+
+fn filter_pscale_deploy(stdout: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let requests: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty() && !l.contains("NUMBER"))
+                .collect();
+            format!("{} deploy requests", requests.len())
+        }
+        "create" => "Deploy request created".to_string(),
+        "deploy" => "Deployed".to_string(),
+        _ => truncate(stdout, 200)
+    }
+}
+
+fn filter_pscale_connect(stdout: &str, stderr: &str) -> String {
+    let combined = format!("{}\n{}", stdout, stderr);
+
+    let addr_re = Regex::new(r"127\.0\.0\.1:(\d+)").unwrap();
+    if let Some(caps) = addr_re.captures(&combined) {
+        return format!("Connected on port {}", &caps[1]);
+    }
+
+    if combined.contains("ready") {
+        "Connected".to_string()
+    } else {
+        filter_generic(stdout, stderr)
+    }
+}
+
+/// Filter for Neon CLI commands.
+pub struct NeonFilter;
+
+impl Filter for NeonFilter {
+    fn name(&self) -> &'static str { "neonctl" }
+
+    fn matches(&self, command: &str) -> bool {
+        let cmd = command.to_lowercase();
+        cmd == "neonctl" || cmd == "neonctl.exe" || cmd == "neon"
+    }
+
+    fn execute(&self, command: &str, args: &[String]) -> Result<FilterResult> {
+        let subcommand = args.first().map(|s| s.as_str()).unwrap_or("");
+
+        let start = Instant::now();
+        let output = Command::new(command).args(args).output()?;
+        let exec_time_ms = start.elapsed().as_millis() as u64;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let input_chars = stdout.len() + stderr.len();
+
+        let filtered = match subcommand {
+            "projects" => filter_neon_projects(&stdout, args),
+            "branches" => filter_neon_branches(&stdout, args),
+            "databases" => filter_neon_databases(&stdout, args),
+            "connection-string" => filter_neon_connstring(&stdout),
+            _ => filter_generic(&stdout, &stderr),
+        };
+
+        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+    }
+
+    fn priority(&self) -> u8 { 85 }
+}
+
+fn filter_neon_projects(stdout: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let projects: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty() && !l.contains("Id"))
+                .collect();
+            format!("{} projects", projects.len())
+        }
+        "create" => "Project created".to_string(),
+        "delete" => "Project deleted".to_string(),
+        _ => truncate(stdout, 200)
+    }
+}
+
+fn filter_neon_branches(stdout: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let branches: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty() && !l.contains("Id"))
+                .collect();
+            format!("{} branches", branches.len())
+        }
+        "create" => "Branch created".to_string(),
+        "delete" => "Branch deleted".to_string(),
+        _ => truncate(stdout, 200)
+    }
+}
+
+fn filter_neon_databases(stdout: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let dbs: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty() && !l.contains("Name"))
+                .collect();
+            format!("{} databases", dbs.len())
+        }
+        "create" => "Database created".to_string(),
+        "delete" => "Database deleted".to_string(),
+        _ => truncate(stdout, 200)
+    }
+}
+
+fn filter_neon_connstring(stdout: &str) -> String {
+    // Mask password in connection string
+    let masked_re = Regex::new(r"(postgres://[^:]+:)[^@]+(@.+)").unwrap();
+    if let Some(caps) = masked_re.captures(stdout) {
+        return format!("{}***{}", &caps[1], &caps[2]);
+    }
+    truncate(stdout.trim(), 100)
+}
+
+/// Filter for Turso CLI commands.
+pub struct TursoFilter;
+
+impl Filter for TursoFilter {
+    fn name(&self) -> &'static str { "turso" }
+
+    fn matches(&self, command: &str) -> bool {
+        let cmd = command.to_lowercase();
+        cmd == "turso" || cmd == "turso.exe"
+    }
+
+    fn execute(&self, command: &str, args: &[String]) -> Result<FilterResult> {
+        let subcommand = args.first().map(|s| s.as_str()).unwrap_or("");
+
+        let start = Instant::now();
+        let output = Command::new(command).args(args).output()?;
+        let exec_time_ms = start.elapsed().as_millis() as u64;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let input_chars = stdout.len() + stderr.len();
+
+        let filtered = match subcommand {
+            "db" => filter_turso_db(&stdout, &stderr, args),
+            "group" => filter_turso_group(&stdout, args),
+            "auth" => filter_turso_auth(&stdout, &stderr),
+            _ => filter_generic(&stdout, &stderr),
+        };
+
+        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+    }
+
+    fn priority(&self) -> u8 { 85 }
+}
+
+fn filter_turso_db(stdout: &str, stderr: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let dbs: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty() && !l.contains("Name"))
+                .collect();
+            format!("{} databases", dbs.len())
+        }
+        "create" => {
+            if stdout.contains("Created") {
+                "Database created".to_string()
+            } else {
+                filter_generic(stdout, stderr)
+            }
+        }
+        "destroy" => "Database destroyed".to_string(),
+        "shell" => filter_query_result(stdout, stderr),
+        "show" => {
+            let url_re = Regex::new(r"URL:\s*(\S+)").unwrap();
+            if let Some(caps) = url_re.captures(stdout) {
+                format!("URL: {}", truncate(&caps[1], 50))
+            } else {
+                truncate(stdout, 200)
+            }
+        }
+        _ => filter_generic(stdout, stderr)
+    }
+}
+
+fn filter_turso_group(stdout: &str, args: &[String]) -> String {
+    let subcmd = args.get(1).map(|s| s.as_str()).unwrap_or("");
+
+    match subcmd {
+        "list" => {
+            let groups: Vec<&str> = stdout.lines()
+                .filter(|l| !l.trim().is_empty() && !l.contains("Name"))
+                .collect();
+            format!("{} groups", groups.len())
+        }
+        "create" => "Group created".to_string(),
+        "destroy" => "Group destroyed".to_string(),
+        _ => truncate(stdout, 200)
+    }
+}
+
+fn filter_turso_auth(stdout: &str, stderr: &str) -> String {
+    let combined = format!("{}\n{}", stdout, stderr);
+
+    if combined.contains("Success") || combined.contains("logged in") {
+        "Authenticated".to_string()
+    } else if combined.contains("token") {
+        "Token generated".to_string()
+    } else {
+        filter_generic(stdout, stderr)
     }
 }

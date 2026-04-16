@@ -35,7 +35,11 @@ use super::test::{VitestFilter, JestFilter, PlaywrightFilter};
 use super::lint::{EslintFilter, PrettierFilter, BiomeFilter};
 
 // Database filters
-use super::database::{PsqlFilter, MysqlFilter, SqlcmdFilter, RedisCliFilter, MongoshFilter};
+use super::database::{
+    PsqlFilter, MysqlFilter, SqlcmdFilter, RedisCliFilter, MongoshFilter,
+    Sqlite3Filter, CqlshFilter, CypherShellFilter, InfluxFilter,
+    SupabaseFilter, PscaleFilter, NeonFilter, TursoFilter,
+};
 
 // Package manager filters
 use super::winpkg::{WingetFilter, ChocoFilter, ScoopFilter};
@@ -136,6 +140,15 @@ impl FilterRegistry {
             Box::new(SqlcmdFilter),
             Box::new(RedisCliFilter),
             Box::new(MongoshFilter),
+            // Phase 4: More databases
+            Box::new(Sqlite3Filter),
+            Box::new(CqlshFilter),
+            Box::new(CypherShellFilter),
+            Box::new(InfluxFilter),
+            Box::new(SupabaseFilter),
+            Box::new(PscaleFilter),
+            Box::new(NeonFilter),
+            Box::new(TursoFilter),
 
             // Package manager filters
             Box::new(WingetFilter),

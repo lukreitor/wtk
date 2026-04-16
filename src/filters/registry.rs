@@ -1,6 +1,10 @@
 //! Filter registry - Central registry for all command filters.
 
 use super::git::GitFilter;
+use super::github::GhFilter;
+use super::network::{CurlFilter, ScpFilter, SshFilter};
+use super::node::NodePackageFilter;
+use super::windows::WindowsSystemFilter;
 use super::Filter;
 
 /// Central registry for all command filters.
@@ -14,10 +18,16 @@ impl FilterRegistry {
         let mut filters: Vec<Box<dyn Filter>> = vec![
             // Git filter (handles all git subcommands)
             Box::new(GitFilter),
-            // Node filters (TODO)
-            // .NET filters (TODO)
-            // Docker filters (TODO)
-            // Windows filters (TODO)
+            // GitHub CLI
+            Box::new(GhFilter),
+            // Node.js ecosystem (npm, pnpm, yarn, bun, npx)
+            Box::new(NodePackageFilter),
+            // Network tools
+            Box::new(CurlFilter),
+            Box::new(SshFilter),
+            Box::new(ScpFilter),
+            // Windows system commands
+            Box::new(WindowsSystemFilter),
         ];
 
         // Sort by priority (descending)

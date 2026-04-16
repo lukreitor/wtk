@@ -1,9 +1,12 @@
 //! Filter registry - Central registry for all command filters.
 
+use super::dotnet::DotnetFilter;
 use super::git::GitFilter;
 use super::github::GhFilter;
 use super::network::{CurlFilter, ScpFilter, SshFilter};
 use super::node::NodePackageFilter;
+use super::prisma::PrismaFilter;
+use super::typescript::TscFilter;
 use super::windows::WindowsSystemFilter;
 use super::Filter;
 
@@ -22,6 +25,12 @@ impl FilterRegistry {
             Box::new(GhFilter),
             // Node.js ecosystem (npm, pnpm, yarn, bun, npx)
             Box::new(NodePackageFilter),
+            // TypeScript compiler
+            Box::new(TscFilter),
+            // .NET CLI
+            Box::new(DotnetFilter),
+            // Prisma CLI
+            Box::new(PrismaFilter),
             // Network tools
             Box::new(CurlFilter),
             Box::new(SshFilter),

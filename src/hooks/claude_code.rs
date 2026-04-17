@@ -21,12 +21,25 @@ pub fn install(global: bool) -> Result<()> {
         serde_json::json!({})
     };
 
-    // Add WTK hooks
+    // Get full path to wtk executable
+    let wtk_path = std::env::current_exe()
+        .context("Failed to get current executable path")?;
+
+    // Convert to absolute path and normalize separators for Windows
+    let wtk_path_str = wtk_path
+        .canonicalize()
+        .unwrap_or(wtk_path)
+        .to_str()
+        .context("Failed to convert path to string")?
+        .replace("\\\\?\\", "") // Remove Windows UNC prefix
+        .replace('\\', "/");    // Use forward slashes for compatibility
+
+    // Add WTK hooks with full path
     let wtk_hook = serde_json::json!({
         "matcher": { "tool_name": "Bash" },
         "hooks": [{
             "type": "command",
-            "command": "wtk rewrite"
+            "command": format!("{} rewrite", wtk_path_str)
         }]
     });
 

@@ -452,6 +452,23 @@ Inspired by [RTK (Rust Token Killer)](https://github.com/rtk-ai/rtk).
 
 ---
 
+## Changelog
+
+### v0.6.0 (2026-04-17)
+
+**🐛 Bug Fixes**
+- **hooks**: Fix Claude Code hook installation to use absolute path with forward slashes
+  - Changed from relative `wtk` to absolute `C:/Users/.../.cargo/bin/wtk.exe`
+  - Added path normalization with `canonicalize()` + UNC prefix removal
+  - Claude Code now correctly invokes wtk on Windows
+  - Resolves hook execution failures on system paths
+
+**🔧 Improvements**
+- Improved hook installer compatibility with Windows path formats
+- Better cross-platform path handling in hook configuration
+
+---
+
 ## What's Coming
 
 ### v0.3.0 (Next Release)

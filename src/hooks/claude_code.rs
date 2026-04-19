@@ -36,7 +36,7 @@ pub fn install(global: bool) -> Result<()> {
 
     // Add WTK hooks with full path
     let wtk_hook = serde_json::json!({
-        "matcher": { "tool_name": "Bash" },
+        "matcher": "Bash",
         "hooks": [{
             "type": "command",
             "command": format!("{} rewrite", wtk_path_str)

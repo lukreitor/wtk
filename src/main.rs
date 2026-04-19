@@ -28,7 +28,7 @@ fn main() -> Result<()> {
             cli::commands::run_command(&command)?;
         }
         Commands::Rewrite { command } => {
-            cli::commands::rewrite_command(&command)?;
+            cli::commands::rewrite_command(command.as_deref())?;
         }
         Commands::Gain { options } => {
             cli::commands::show_gain(options)?;

@@ -51,23 +51,48 @@ pub fn run_command(args: &[String]) -> Result<()> {
 }
 
 /// Rewrite a command for Claude Code hooks.
-pub fn rewrite_command(command: &str) -> Result<()> {
+pub fn rewrite_command(command: Option<&str>) -> Result<()> {
     let registry = FilterRegistry::new();
-    let parts: Vec<&str> = command.split_whitespace().collect();
 
+    let cmd_str = if let Some(cmd) = command {
+        cmd.to_string()
+    } else {
+        // Claude Code hook mode: reads JSON from stdin
+        use std::io::Read;
+        let mut input = String::new();
+        std::io::stdin().read_to_string(&mut input)?;
+
+        if input.trim().is_empty() {
+            return Ok(());
+        }
+
+        let hook_input: serde_json::Value = match serde_json::from_str(&input) {
+            Ok(v) => v,
+            Err(_) => return Ok(()),
+        };
+
+        match hook_input
+            .get("tool_input")
+            .and_then(|ti| ti.get("command"))
+            .and_then(|c| c.as_str())
+        {
+            Some(cmd) => cmd.to_string(),
+            None => return Ok(()),
+        }
+    };
+
+    let parts: Vec<&str> = cmd_str.split_whitespace().collect();
     if parts.is_empty() {
         return Ok(());
     }
 
-    // Check if we have a filter for this command
     if registry.find_filter(parts[0]).is_some() {
-        // Output JSON for Claude Code hook
         let response = serde_json::json!({
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "allow",
                 "updatedInput": {
-                    "command": format!("wtk {}", command)
+                    "command": format!("wtk {}", cmd_str)
                 }
             }
         });

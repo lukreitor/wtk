@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="https://img.shields.io/badge/🔪_WTK-Windows_Token_Killer-blue?style=for-the-badge" alt="WTK">
 </p>
 
@@ -318,7 +318,7 @@ Periods: -T 1d | -T 7d | -T 30d | -T 90d | -T 1y | -T all
 │  PreToolUse Hook                                                 │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │  Input:  git status                                        │  │
-│  │  WTK:    wtk rewrite "git status"                         │  │
+│  │  WTK:    wtk rewrite  (reads from stdin)                         │  │
 │  │  Output: {"updatedInput": {"command": "wtk git status"}}  │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
@@ -453,6 +453,19 @@ Inspired by [RTK (Rust Token Killer)](https://github.com/rtk-ai/rtk).
 ---
 
 ## Changelog
+
+### v0.6.1 (2026-04-19)
+
+**🐛 Bug Fixes**
+- **hooks**: Fix `wtk init --claude-code` generating wrong matcher format
+  - Was: `"matcher": { "tool_name": "Bash" }` (invalid object)
+  - Now: `"matcher": "Bash"` (correct string format per Claude Code spec)
+- **rewrite**: Fix `wtk rewrite` to read from stdin (Claude Code hook protocol)
+  - Was: required positional `<COMMAND>` argument — caused all hook invocations to fail
+  - Now: reads JSON from stdin when invoked without args, extracts `tool_input.command`
+  - Backwards compatible: still accepts optional positional arg for manual testing
+
+---
 
 ### v0.6.0 (2026-04-17)
 

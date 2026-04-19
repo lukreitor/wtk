@@ -24,8 +24,8 @@ pub enum Commands {
 
     /// Rewrite a command for Claude Code hooks (internal use)
     Rewrite {
-        /// The command to rewrite
-        command: String,
+        /// The command to rewrite (reads from stdin if not provided)
+        command: Option<String>,
     },
 
     /// Show token savings statistics

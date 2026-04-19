@@ -14,7 +14,7 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/rust-1.75+-orange.svg" alt="Rust 1.75+"></a>
   <img src="https://img.shields.io/badge/platform-Windows-blue.svg" alt="Platform: Windows">
-  <img src="https://img.shields.io/badge/commands-200+-green.svg" alt="200+ Commands">
+  <img src="https://img.shields.io/badge/commands-300+-green.svg" alt="200+ Commands">
 </p>
 
 ---
@@ -61,7 +61,11 @@ RTK is great on Unix/Linux but **doesn't work properly on Windows**:
 | **CMD commands** | ❌ None | ✅ ipconfig, tasklist, netstat |
 | **winget/choco/scoop** | ❌ None | ✅ All 3 package managers |
 | **Windows path handling** | ❌ Breaks on `C:\` | ✅ Native path support |
-| **Command filters** | 100+ | **200+ (50 filter classes)** |
+| **PHP/C/C++ filters** | ❌ None | ✅ composer, artisan, make, cmake, gcc |
+| **Ansible** | ❌ None | ✅ ansible, ansible-playbook, galaxy, vault |
+| **PaaS/Serverless** | ❌ None | ✅ vercel, netlify, railway, flyctl, heroku |
+| **Cloud DBs** | ❌ None | ✅ supabase, pscale, neonctl, turso |
+| **Command filters** | 100+ | **300+ (60+ filter classes)** |
 | **Binary size** | ~5MB | ~5MB (Rust optimized) |
 | **Claude Code Hooks** | ✅ | ✅ + Windows shell hooks |
 
@@ -169,16 +173,36 @@ wtk git diff
 wtk cargo build
 wtk npm install
 wtk dotnet build
+wtk composer install    # PHP
+wtk make                # C/C++
+wtk cmake --build .     # C/C++
 
 # DevOps
 wtk docker ps
 wtk kubectl get pods
 wtk terraform plan
+wtk ansible-playbook site.yml
+wtk pulumi up
+wtk vagrant status
+wtk argocd app list
+
+# PaaS / Serverless
+wtk vercel deploy
+wtk serverless deploy
+wtk flyctl status
+
+# Databases
+wtk supabase db push
+wtk pscale branch list
+wtk neonctl branches list
+wtk turso db list
 
 # Windows
 wtk ipconfig /all
 wtk Get-Process
+wtk Get-ScheduledTask
 wtk winget list
+wtk robocopy src dst /MIR
 ```
 
 ### 3. Track Your Savings
@@ -217,6 +241,12 @@ wtk discover
 | `ping` | **91.9%** | Success/fail summary, avg latency |
 | `ipconfig` | **91.7%** | Active adapters with IPs only |
 | `tracert` | **75%** | Condensed hop list |
+| `robocopy` | **80%** | Summary: files copied/skipped/failed |
+| `findstr` | **70%** | Matches only, no decorations |
+| `icacls` | **70%** | Compact ACL list |
+| `certutil` | **75%** | Key fields only |
+| `diskpart` | **65%** | Compact volume/disk list |
+| `fsutil` | **65%** | Key filesystem info |
 
 ### PowerShell Cmdlets (Measured)
 | Cmdlet | Savings | Description |
@@ -226,6 +256,13 @@ wtk discover
 | `Get-EventLog` | **85%** | Error/warning/info counts, recent |
 | `Get-ChildItem` | **65%** | Dirs/files count, first 15 items |
 | `Get-ComputerInfo` | **70%** | OS, version, memory only |
+| `Get-Module` | **75%** | Loaded modules compact list |
+| `Get-Command` | **80%** | Filtered command list |
+| `Get-ScheduledTask` | **85%** | Active tasks only |
+| `Get-LocalUser` | **80%** | User list compact |
+| `Get-Acl` | **70%** | Key permissions only |
+| `Test-NetConnection` | **65%** | Success/fail + latency |
+| `Select-String` | **70%** | Matches with file:line |
 
 ### Version Control (Measured)
 | Command | Savings | Description |
@@ -245,6 +282,12 @@ wtk discover
 | `pip/poetry` | Python | **80%** |
 | `mvn/gradle` | Java | **90%** |
 | `dotnet build` | .NET | **85%** |
+| `composer install/update` | PHP | **85%** |
+| `php artisan` | Laravel/PHP | **80%** |
+| `phpunit/pest` | PHP Testing | **90%** |
+| `make/cmake` | C/C++ Build | **80%** |
+| `gcc/g++/clang` | C/C++ Compile | **75%** |
+| `ninja` | C/C++ Build | **80%** |
 
 ### Test Runners
 | Command | Savings |
@@ -253,6 +296,8 @@ wtk discover
 | `jest` | **95%** |
 | `playwright` | **94%** |
 | `pytest` | **90%** |
+| `phpunit` | **90%** |
+| `pest` | **90%** |
 
 ### DevOps & Cloud
 | Command | Type | Savings |
@@ -261,6 +306,19 @@ wtk discover
 | `kubectl get` | Kubernetes | **85%** |
 | `terraform plan` | IaC | **90%** |
 | `az/aws/gcloud` | Cloud CLIs | **80%** |
+| `ansible/ansible-playbook` | Automation | **85%** |
+| `ansible-galaxy/vault` | Ansible | **80%** |
+| `pulumi up/preview` | IaC | **85%** |
+| `vagrant status/up` | VMs | **80%** |
+| `packer build` | Images | **80%** |
+| `vercel/netlify` | PaaS Deploy | **75%** |
+| `railway/flyctl/render` | PaaS Deploy | **75%** |
+| `heroku` | PaaS | **75%** |
+| `minikube/kind/k3s` | Local K8s | **80%** |
+| `skaffold/tilt` | K8s Dev | **80%** |
+| `argocd` | GitOps | **85%** |
+| `istioctl/linkerd` | Service Mesh | **80%** |
+| `eksctl` | EKS | **80%** |
 
 ### Package Managers
 | Command | Savings |
@@ -270,12 +328,32 @@ wtk discover
 | `scoop list` | **75%** |
 
 ### Databases
+| Command | Type | Savings |
+|---------|------|:-------:|
+| `psql` | PostgreSQL | **75%** |
+| `mysql` | MySQL | **75%** |
+| `sqlcmd` | SQL Server | **75%** |
+| `redis-cli` | Redis | **80%** |
+| `sqlite3` | SQLite | **70%** |
+| `supabase` | Supabase | **80%** |
+| `pscale` | PlanetScale | **80%** |
+| `neonctl` | Neon (Postgres) | **80%** |
+| `turso` | Turso (LibSQL) | **80%** |
+| `influx` | InfluxDB | **75%** |
+| `cqlsh` | Cassandra | **75%** |
+| `cypher-shell` | Neo4j | **75%** |
+
+### Network & SSH
 | Command | Savings |
 |---------|:-------:|
-| `psql` | **75%** |
-| `mysql` | **75%** |
-| `sqlcmd` | **75%** |
-| `redis-cli` | **80%** |
+| `sftp/psftp` | **70%** | Compact transfer summary |
+| `ssh` | **65%** | Passthrough with error filter |
+| `curl` | **70%** | Headers + body compact |
+
+### Infrastructure Automation
+| Command | Savings |
+|---------|:-------:|
+| `serverless/sls` | **85%** | Deployment summary only |
 
 ---
 
@@ -360,7 +438,7 @@ wtk/
 │   ├── cli/                 # CLI (clap)
 │   │   ├── mod.rs           # Command definitions
 │   │   └── commands.rs      # Command handlers
-│   ├── filters/             # 50+ command filters
+│   ├── filters/             # 60+ command filters
 │   │   ├── git/             # Git operations
 │   │   ├── docker/          # Docker/Compose
 │   │   ├── kubernetes/      # kubectl/helm
@@ -370,10 +448,16 @@ wtk/
 │   │   ├── python/          # pip/pytest/ruff
 │   │   ├── java/            # Maven/Gradle
 │   │   ├── node/            # npm/pnpm/yarn
-│   │   ├── windows/         # CMD/PowerShell
+│   │   ├── php/             # composer/artisan/phpunit/pest
+│   │   ├── cpp/             # make/cmake/gcc/g++/clang/ninja
+│   │   ├── windows/         # CMD commands (25+)
+│   │   ├── powershell/      # PowerShell cmdlets (29+)
 │   │   ├── winpkg/          # winget/choco/scoop
-│   │   ├── database/        # psql/mysql/redis
+│   │   ├── database/        # psql/mysql/redis/sqlite3/supabase/pscale/neon/turso
 │   │   ├── terraform/       # Terraform
+│   │   ├── devops/          # vagrant/packer/pulumi/serverless/vercel/argocd/istio
+│   │   ├── ansible/         # ansible/ansible-playbook/galaxy/vault
+│   │   ├── network/         # curl/ssh/sftp/psftp
 │   │   ├── test/            # vitest/jest/playwright
 │   │   ├── lint/            # eslint/prettier
 │   │   ├── frameworks/      # next/nx/vite

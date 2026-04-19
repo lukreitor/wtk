@@ -23,30 +23,32 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Measured Token Savings                        │
+│                  Measured Character Savings                      │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│   Total commands:    47                                          │
-│   Input tokens:      261.5K                                      │
-│   Output tokens:     13.1K                                       │
-│   Tokens saved:      248.3K (95.0%)                              │
+│   Total commands:    87                                          │
+│   Input chars:       472.8K                                      │
+│   Output chars:      30.2K                                       │
+│   Chars saved:       442.5K (93.6%)  ≈ 110K tokens              │
 │                                                                  │
-│   Efficiency: ████████████████████████░  95.0%                   │
+│   Efficiency: ███████████████████████░░  93.6%                   │
 │                                                                  │
 ├─────────────────────────────────────────────────────────────────┤
-│   tasklist ×6         147.0K saved    (98.5% reduction)         │
+│   tasklist ×12        310.6K saved    (98.6% reduction)         │
 │   Get-Process ×1       38.7K saved    (99.5% reduction)         │
 │   Get-Service ×1       22.2K saved    (99.4% reduction)         │
+│   ipconfig ×12         19.4K saved    (91.7% reduction)         │
+│   env ×3               12.1K saved    (56.6% reduction)         │
 │   systeminfo ×2        11.2K saved    (98.3% reduction)         │
-│   ipconfig ×6           9.7K saved    (91.7% reduction)         │
 │   netstat -an ×1        7.1K saved    (96.1% reduction)         │
-│   git status ×10        2.8K saved    (72.3% reduction)         │
-│   git log ×1            2.2K saved    (85.8% reduction)         │
-│   ping ×5               1.5K saved    (91.9% reduction)         │
+│   git status ×16        5.0K saved    (72.6% reduction)         │
+│   grep -r ×1            4.0K saved    (72.5% reduction)         │
+│   ping ×11              3.4K saved    (91.9% reduction)         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-> **Note**: Savings measured from real WTK usage. PowerShell cmdlets like `Get-Process` and `Get-Service` show 99%+ reduction due to their extremely verbose default output.
+> **Note**: Savings are measured in **characters** (not raw tokens). Real token savings ≈ chars ÷ 4 for English/code text.
+> PowerShell cmdlets like `Get-Process` and `Get-Service` show 99%+ reduction due to their extremely verbose default output.
 
 ---
 
@@ -197,6 +199,13 @@ wtk pscale branch list
 wtk neonctl branches list
 wtk turso db list
 
+# Search & file discovery
+wtk grep -r "fn main" src/
+wtk rg "TODO" --type rust
+wtk find . -name "*.rs" -type f
+wtk fd "\.ts$" src/
+wtk env
+
 # Windows
 wtk ipconfig /all
 wtk Get-Process
@@ -342,6 +351,15 @@ wtk discover
 | `influx` | InfluxDB | **75%** |
 | `cqlsh` | Cassandra | **75%** |
 | `cypher-shell` | Neo4j | **75%** |
+
+### Search & File Discovery
+| Command | Savings | Description |
+|---------|:-------:|-------------|
+| `grep` | **80%** | Grouped by file: N matches per file, 3 lines context |
+| `rg` / `ripgrep` | **80%** | Same as grep — file:line:content format |
+| `find` | **75%** | Grouped by dir: N files per dir (uses Unix find on Windows) |
+| `fd` / `fdfind` | **75%** | Compact file list grouped by directory |
+| `env` / `printenv` | **55-85%** | Hides system vars, masks `*_KEY/*_SECRET/*_TOKEN`, formats PATH |
 
 ### Network & SSH
 | Command | Savings |

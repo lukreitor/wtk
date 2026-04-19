@@ -52,6 +52,15 @@ use super::powershell::{PowerShellFilter, GetProcessFilter, GetServiceFilter, Ge
 // Framework filters
 use super::frameworks::{NextFilter, NxFilter, TurboFilter, ViteFilter};
 
+// Search filters
+use super::search::GrepFilter;
+
+// Find filters
+use super::find::FindFilter;
+
+// Sysenv filters
+use super::sysenv::EnvFilter;
+
 use super::Filter;
 
 /// Central registry for all command filters.
@@ -180,6 +189,15 @@ impl FilterRegistry {
             Box::new(NxFilter),
             Box::new(TurboFilter),
             Box::new(ViteFilter),
+
+            // Search filters
+            Box::new(GrepFilter),
+
+            // Find filters
+            Box::new(FindFilter),
+
+            // Sysenv filters
+            Box::new(EnvFilter),
         ];
 
         // Sort by priority (descending)

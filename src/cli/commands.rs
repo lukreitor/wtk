@@ -174,13 +174,15 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
             println!("{}", "📊 WTK Token Savings".bold());
             println!("{}", "═".repeat(60));
             println!();
+            let approx_tokens = stats.total_saved / 4;
             println!("  Total commands:    {}", format_number(stats.total_commands).cyan());
-            println!("  Input tokens:      {}", format_tokens(stats.total_input).yellow());
-            println!("  Output tokens:     {}", format_tokens(stats.total_output).green());
+            println!("  Input chars:       {}", format_tokens(stats.total_input).yellow());
+            println!("  Output chars:      {}", format_tokens(stats.total_output).green());
             println!(
-                "  Tokens saved:      {} ({:.1}%)",
+                "  Chars saved:       {} ({:.1}%)  ≈ {} tokens",
                 format_tokens(stats.total_saved).bright_green(),
-                stats.percent
+                stats.percent,
+                format_tokens(approx_tokens).bright_cyan()
             );
             println!();
             println!("  {}", render_efficiency_bar(stats.percent));

@@ -45,6 +45,15 @@ pub mod powershell;
 // Frameworks
 pub mod frameworks;
 
+// Search tools
+pub mod search;
+
+// Find tools
+pub mod find;
+
+// System environment
+pub mod sysenv;
+
 // Core exports
 pub use dotnet::DotnetFilter;
 pub use git::GitFilter;
@@ -98,3 +107,12 @@ pub use powershell::{PowerShellFilter, GetProcessFilter, GetServiceFilter, GetCh
 
 // Framework exports
 pub use frameworks::{NextFilter, NxFilter, TurboFilter, ViteFilter};
+
+// Search exports
+pub use search::GrepFilter;
+
+// Find exports
+pub use find::FindFilter;
+
+// Sysenv exports
+pub use sysenv::EnvFilter;

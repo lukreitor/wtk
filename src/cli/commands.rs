@@ -212,6 +212,8 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
                 } else {
                     " (cl100k)".dimmed().to_string()
                 };
+                println!("  Input tokens:      {}", format_count(tok.total_input).yellow());
+                println!("  Output tokens:     {}", format_count(tok.total_output).green());
                 println!(
                     "  Tokens saved:      {} ({:.1}%){}",
                     format_count(tok.total_saved).bright_cyan(),

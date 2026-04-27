@@ -595,6 +595,15 @@ Inspired by [RTK (Rust Token Killer)](https://github.com/rtk-ai/rtk).
 
 ## Changelog
 
+### v0.8.1 (2026-04-27)
+
+**🔧 Display**
+- `wtk gain` now shows `Input tokens` / `Output tokens` lines alongside the
+  existing `Input chars` / `Output chars` when cl100k data is present, mirroring
+  the chars layout for symmetry.
+
+---
+
 ### v0.8.0 (2026-04-27)
 
 **✨ Features**

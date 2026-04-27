@@ -25,16 +25,16 @@ impl Filter for EnvFilter {
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let input_chars = stdout.len() + stderr.len();
+        let raw = format!("{}{}", stdout, stderr);
 
         // If a specific var is requested (e.g. `printenv HOME`), pass through as-is
         let has_var_arg = args.iter().any(|a| !a.starts_with('-') && !a.is_empty());
         if has_var_arg {
-            return Ok(FilterResult::new(stdout.trim().to_string(), input_chars, exec_time_ms));
+            return Ok(FilterResult::with_raw(stdout.trim().to_string(), raw, exec_time_ms));
         }
 
         let filtered = filter_env_output(&stdout);
-        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+        Ok(FilterResult::with_raw(filtered, raw, exec_time_ms))
     }
 
     fn priority(&self) -> u8 {

@@ -40,10 +40,10 @@ impl Filter for FindFilter {
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let input_chars = stdout.len() + stderr.len();
 
         let filtered = filter_find_output(&stdout, &stderr);
-        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+        let raw = format!("{}{}", stdout, stderr);
+        Ok(FilterResult::with_raw(filtered, raw, exec_time_ms))
     }
 
     fn priority(&self) -> u8 {

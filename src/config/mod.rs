@@ -39,6 +39,11 @@ pub struct TrackingConfig {
 
     #[serde(default = "default_history_days")]
     pub history_days: u32,
+
+    /// Token counting strategy: "bytes" (default, fast) or "cl100k" (real BPE, +5-30ms/call).
+    /// Can be overridden by `WTK_TOKENIZER` env var or per-command CLI flag.
+    #[serde(default = "default_tokenizer")]
+    pub tokenizer: String,
 }
 
 impl Default for TrackingConfig {
@@ -46,8 +51,13 @@ impl Default for TrackingConfig {
         Self {
             enabled: true,
             history_days: 90,
+            tokenizer: default_tokenizer(),
         }
     }
+}
+
+fn default_tokenizer() -> String {
+    "bytes".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

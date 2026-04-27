@@ -7,6 +7,7 @@ use std::process::{Command, Stdio};
 use crate::filters::registry::FilterRegistry;
 use crate::hooks;
 use crate::tracking::db::TrackingDb;
+use crate::tracking::tokenizer::{self, TokenizerKind};
 
 use super::{GainOptions, InitOptions};
 
@@ -29,6 +30,19 @@ pub fn run_command(args: &[String]) -> Result<()> {
         // Execute with filter
         let result = filter.execute(&command, &command_args)?;
 
+        // Resolve tokenizer (CLI override is None at this layer — only `gain`
+        // currently exposes a flag; `run` is an external_subcommand so flags
+        // can't be added without reordering args). Env / config still apply.
+        let kind = tokenizer::resolve_kind(None);
+        let (tokens_in, tokens_out) = match (kind, result.raw_input.as_deref()) {
+            (TokenizerKind::Cl100k, Some(raw)) => (
+                tokenizer::count(raw, kind),
+                tokenizer::count(&result.output, kind),
+            ),
+            // Filter didn't preserve raw text, or tokenizer is bytes-only.
+            _ => (None, None),
+        };
+
         // Track the result
         let db = TrackingDb::open()?;
         db.track_command(
@@ -37,6 +51,9 @@ pub fn run_command(args: &[String]) -> Result<()> {
             result.output_chars,
             result.exec_time_ms,
             filter.name(),
+            tokens_in,
+            tokens_out,
+            kind.as_str(),
         )?;
 
         // Print filtered output
@@ -174,16 +191,41 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
             println!("{}", "📊 WTK Token Savings".bold());
             println!("{}", "═".repeat(60));
             println!();
-            let approx_tokens = stats.total_saved / 4;
             println!("  Total commands:    {}", format_number(stats.total_commands).cyan());
-            println!("  Input chars:       {}", format_tokens(stats.total_input).yellow());
-            println!("  Output chars:      {}", format_tokens(stats.total_output).green());
+            println!("  Input chars:       {}", format_count(stats.total_input).yellow());
+            println!("  Output chars:      {}", format_count(stats.total_output).green());
             println!(
-                "  Chars saved:       {} ({:.1}%)  ≈ {} tokens",
-                format_tokens(stats.total_saved).bright_green(),
-                stats.percent,
-                format_tokens(approx_tokens).bright_cyan()
+                "  Chars saved:       {} ({:.1}%)",
+                format_count(stats.total_saved).bright_green(),
+                stats.percent
             );
+
+            // Real-tokenizer numbers when present, else the chars/4 heuristic.
+            if let Some(tok) = &stats.tokens {
+                let coverage = if tok.rows_with_tokens < stats.total_commands {
+                    format!(
+                        " ({}/{} rows, cl100k)",
+                        tok.rows_with_tokens, stats.total_commands
+                    )
+                    .dimmed()
+                    .to_string()
+                } else {
+                    " (cl100k)".dimmed().to_string()
+                };
+                println!(
+                    "  Tokens saved:      {} ({:.1}%){}",
+                    format_count(tok.total_saved).bright_cyan(),
+                    tok.percent,
+                    coverage
+                );
+            } else {
+                let approx_tokens = stats.total_saved / 4;
+                println!(
+                    "  Est. tokens saved: ~{} {}",
+                    format_count(approx_tokens).bright_cyan(),
+                    "(heuristic: chars÷4, ASCII English)".dimmed()
+                );
+            }
             println!();
             println!("  {}", render_efficiency_bar(stats.percent));
             println!();
@@ -214,7 +256,7 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
                         "  {:30}  {:>5}  {:>8}  {}",
                         truncate(&cmd.command, 30),
                         cmd.count,
-                        format_tokens(cmd.saved_chars),
+                        format_count(cmd.saved_chars),
                         pct_colored
                     );
                 }
@@ -223,8 +265,24 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
                     "  {:30}  {:>5}  {:>8}  {:.1}%",
                     "TOTAL".bold(),
                     stats.total_commands,
-                    format_tokens(stats.total_saved).bright_green(),
+                    format_count(stats.total_saved).bright_green(),
                     stats.percent
+                );
+            }
+            println!();
+
+            // Show which tokenizer would be used for new commands.
+            let active = tokenizer::resolve_kind(None);
+            let label = match active {
+                TokenizerKind::Bytes => "bytes (heuristic chars÷4)".dimmed(),
+                TokenizerKind::Cl100k => "cl100k (real BPE)".bright_cyan(),
+            };
+            println!("  {} {}", "Active tokenizer:".dimmed(), label);
+            if active == TokenizerKind::Bytes {
+                println!(
+                    "  {} {}",
+                    "Tip:".dimmed(),
+                    "set WTK_TOKENIZER=cl100k for real token counts on new commands".dimmed()
                 );
             }
             println!();
@@ -268,13 +326,13 @@ fn show_gain_graph(db: &TrackingDb, days: u32, period: &str) -> Result<()> {
 
         // Y-axis label - show more labels
         if row == graph_height - 1 {
-            print!("{:>8} │ ", format_tokens(max_saved).cyan());
+            print!("{:>8} │ ", format_count(max_saved).cyan());
         } else if row == (graph_height * 3) / 4 {
-            print!("{:>8} │ ", format_tokens(three_quarter_value).dimmed());
+            print!("{:>8} │ ", format_count(three_quarter_value).dimmed());
         } else if row == graph_height / 2 {
-            print!("{:>8} │ ", format_tokens(mid_value).dimmed());
+            print!("{:>8} │ ", format_count(mid_value).dimmed());
         } else if row == graph_height / 4 {
-            print!("{:>8} │ ", format_tokens(quarter_value).dimmed());
+            print!("{:>8} │ ", format_count(quarter_value).dimmed());
         } else if row == 0 {
             print!("{:>8} │ ", "0".dimmed());
         } else {
@@ -330,8 +388,8 @@ fn show_gain_graph(db: &TrackingDb, days: u32, period: &str) -> Result<()> {
     println!("{}", "─".repeat(50));
     println!("  Period:          {}", label.cyan());
     println!("  Days with data:  {}", daily.len().to_string().cyan());
-    println!("  Total saved:     {}", format_tokens(total_saved).bright_green());
-    println!("  Total input:     {}", format_tokens(total_input).yellow());
+    println!("  Chars saved:     {}", format_count(total_saved).bright_green());
+    println!("  Input chars:     {}", format_count(total_input).yellow());
     println!("  Commands:        {}", format_number(total_commands).cyan());
     println!("  Avg efficiency:  {}%", format!("{:.1}", avg_percent).bright_green());
     println!();
@@ -412,7 +470,7 @@ fn show_gain_history(db: &TrackingDb, limit: usize, days: u32, period: &str) -> 
             "  {}  {:28}  {:>8}  {}  {:>8}",
             time.dimmed(),
             truncate(&entry.command, 28),
-            format_tokens(saved),
+            format_count(saved),
             pct_colored,
             filter_short.dimmed()
         );
@@ -430,7 +488,7 @@ fn show_gain_history(db: &TrackingDb, limit: usize, days: u32, period: &str) -> 
         "  {:19}  {:28}  {:>8}  {:.1}%",
         "",
         format!("TOTAL ({} commands)", history.len()).bold(),
-        format_tokens(total_saved).bright_green(),
+        format_count(total_saved).bright_green(),
         avg_percent
     );
     println!();
@@ -553,7 +611,7 @@ pub fn discover() -> Result<()> {
             "  {:25}  {:>8}  {:>15}",
             cmd,
             count.to_string().cyan(),
-            format_tokens(est_savings).green()
+            format_count(est_savings).green()
         );
     }
 
@@ -566,7 +624,7 @@ pub fn discover() -> Result<()> {
         "  {:25}  {:>8}  {:>15}",
         "TOTAL".bold(),
         total_commands.to_string().cyan(),
-        format_tokens(total_estimated_savings).bright_green()
+        format_count(total_estimated_savings).bright_green()
     );
     println!();
 
@@ -619,7 +677,7 @@ fn execute_raw(command: &str, args: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn format_tokens(n: usize) -> String {
+fn format_count(n: usize) -> String {
     if n >= 1_000_000 {
         format!("{:.1}M", n as f64 / 1_000_000.0)
     } else if n >= 1_000 {

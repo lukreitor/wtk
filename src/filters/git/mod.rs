@@ -39,7 +39,7 @@ impl Filter for GitFilter {
         let exec_time_ms = start.elapsed().as_millis() as u64;
         let raw_output = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let input_chars = raw_output.len() + stderr.len();
+        let raw = format!("{}{}", raw_output, stderr);
 
         // Apply appropriate filter based on subcommand
         let filtered = match subcommand {
@@ -50,7 +50,7 @@ impl Filter for GitFilter {
             _ => {
                 // For non-filtered commands, still capture output but don't filter
                 if !stderr.is_empty() && raw_output.is_empty() {
-                    stderr
+                    stderr.clone()
                 } else if !stderr.is_empty() {
                     format!("{}\n{}", raw_output, stderr)
                 } else {
@@ -59,7 +59,7 @@ impl Filter for GitFilter {
             }
         };
 
-        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+        Ok(FilterResult::with_raw(filtered, raw, exec_time_ms))
     }
 
     fn priority(&self) -> u8 {

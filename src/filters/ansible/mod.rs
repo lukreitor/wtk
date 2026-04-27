@@ -29,7 +29,6 @@ impl Filter for AnsibleFilter {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
         let combined = format!("{}{}", stdout, stderr);
-        let input_chars = combined.len();
 
         let filtered = match command {
             "ansible-playbook" => filter_playbook_output(&combined),
@@ -38,15 +37,9 @@ impl Filter for AnsibleFilter {
             _ => filter_ansible_output(&combined, args),
         };
 
-        let output_chars = filtered.len();
         let exec_time = start.elapsed().as_millis() as u64;
 
-        Ok(FilterResult {
-            output: filtered,
-            input_chars,
-            output_chars,
-            exec_time_ms: exec_time,
-        })
+        Ok(FilterResult::with_raw(filtered, combined, exec_time))
     }
 
     fn priority(&self) -> u8 {

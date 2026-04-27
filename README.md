@@ -510,6 +510,13 @@ wtk/
 [tracking]
 enabled = true
 history_days = 90
+# Token counting strategy:
+#   "bytes"  — fast, default. Counts UTF-8 bytes; gain reports show
+#              "Chars saved" + a chars÷4 heuristic estimate.
+#   "cl100k" — real BPE tokenizer (OpenAI cl100k_base, ~95% Claude proxy).
+#              Adds ~5-30ms per command. New rows store actual token counts;
+#              gain reports show real "Tokens saved" alongside chars.
+tokenizer = "bytes"
 
 [display]
 colors = true
@@ -530,6 +537,27 @@ powershell = true
 | `WTK_CONFIG` | Config file path | `~/.config/wtk/config.toml` |
 | `WTK_LOG` | Log level | `warn` |
 | `WTK_NO_COLOR` | Disable colors | `false` |
+| `WTK_TOKENIZER` | Token counting: `bytes` (heuristic) or `cl100k` (real BPE). Overrides config. | `bytes` |
+
+### Real-token mode (cl100k)
+
+By default WTK measures **byte counts**, then estimates tokens as `chars ÷ 4` —
+the same heuristic RTK uses. Fast but imprecise: file paths and code can be
+±30% off. To get real LLM token counts (within ~5% of Claude's tokenizer):
+
+```bash
+# Per-call
+WTK_TOKENIZER=cl100k wtk find . -name "*.rs"
+
+# Persistent for the shell
+export WTK_TOKENIZER=cl100k
+
+# Or via config.toml [tracking] tokenizer = "cl100k"
+```
+
+Adds ~5-30ms per filter call (BPE encode of raw stdout/stderr). Reports show
+both "Chars saved" and "Tokens saved" when DB has tokenized rows; the
+`Active tokenizer:` line at the bottom of `wtk gain` confirms the live mode.
 
 ---
 
@@ -566,6 +594,37 @@ Inspired by [RTK (Rust Token Killer)](https://github.com/rtk-ai/rtk).
 ---
 
 ## Changelog
+
+### v0.8.0 (2026-04-27)
+
+**✨ Features**
+- **tokenizer**: Optional real BPE tokenizer (`cl100k_base`) for accurate
+  LLM token counts. Default remains the fast `bytes` heuristic. Activate via
+  `WTK_TOKENIZER=cl100k`, the `tokenizer` key in `~/.config/wtk/config.toml`,
+  or per-shell export. Reports show both chars and tokens when DB has
+  tokenized rows, with coverage indicator (`N/M rows, cl100k`).
+- **gain**: Display now shows the active tokenizer at the bottom of the
+  summary, with a tip to enable cl100k when running in heuristic mode.
+
+**🗄️ Database**
+- Forward-only migration on next open: adds `tokens_input`, `tokens_output`,
+  and `tokenizer_kind` columns. Existing rows keep NULL for these — queries
+  use COALESCE / IS NOT NULL to handle the mixed state. No data loss.
+
+**🐛 Honesty Fixes**
+- `wtk gain` no longer labels byte counts as "tokens" without qualification.
+  The `≈ X tokens` line is now `~X (heuristic: chars÷4)` with explicit hint.
+- Renamed internal `format_tokens` → `format_count` to match its actual job.
+- Graph summary uses `Chars saved` / `Input chars` instead of generic
+  `Total saved` / `Total input`.
+
+**📦 Filters Migrated to Token-Aware API**
+- `find` / `fd`, `grep` / `rg`, `env`, `git`, all `windows/*` (tasklist,
+  ipconfig, ...), all PowerShell cmdlets (`Get-Process`, `Get-Service`,
+  `Get-ChildItem`, generic). Other filters fall back to the byte heuristic
+  when cl100k is active — they still record chars correctly.
+
+---
 
 ### v0.7.0 (2026-04-27)
 

@@ -27,13 +27,13 @@ impl Filter for PowerShellFilter {
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let input_chars = stdout.len() + stderr.len();
+        let raw = format!("{}{}", stdout, stderr);
 
         // Try to detect the cmdlet being run
         let cmdlet = extract_cmdlet(args);
         let filtered = filter_by_cmdlet(&cmdlet, &stdout, &stderr);
 
-        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+        Ok(FilterResult::with_raw(filtered, raw, exec_time_ms))
     }
 
     fn priority(&self) -> u8 {
@@ -70,10 +70,10 @@ impl Filter for GetProcessFilter {
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let input_chars = stdout.len() + stderr.len();
+        let raw = format!("{}{}", stdout, stderr);
 
         let filtered = filter_get_process(&stdout, &stderr);
-        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+        Ok(FilterResult::with_raw(filtered, raw, exec_time_ms))
     }
 
     fn priority(&self) -> u8 {
@@ -109,10 +109,10 @@ impl Filter for GetServiceFilter {
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let input_chars = stdout.len() + stderr.len();
+        let raw = format!("{}{}", stdout, stderr);
 
         let filtered = filter_get_service(&stdout, &stderr);
-        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+        Ok(FilterResult::with_raw(filtered, raw, exec_time_ms))
     }
 
     fn priority(&self) -> u8 {
@@ -140,10 +140,10 @@ impl Filter for GetChildItemFilter {
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let input_chars = stdout.len() + stderr.len();
+        let raw = format!("{}{}", stdout, stderr);
 
         let filtered = filter_get_childitem(&stdout, &stderr);
-        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+        Ok(FilterResult::with_raw(filtered, raw, exec_time_ms))
     }
 
     fn priority(&self) -> u8 {

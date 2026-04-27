@@ -63,7 +63,7 @@ impl Filter for WindowsSystemFilter {
         let exec_time_ms = start.elapsed().as_millis() as u64;
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        let input_chars = stdout.len() + stderr.len();
+        let raw = format!("{}{}", stdout, stderr);
 
         let filtered = match cmd_name {
             "ipconfig" => filter_ipconfig(&stdout, args),
@@ -99,7 +99,7 @@ impl Filter for WindowsSystemFilter {
             _ => stdout.clone(),
         };
 
-        Ok(FilterResult::new(filtered, input_chars, exec_time_ms))
+        Ok(FilterResult::with_raw(filtered, raw, exec_time_ms))
     }
 
     fn priority(&self) -> u8 {

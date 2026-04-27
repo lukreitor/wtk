@@ -23,31 +23,32 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                  Measured Character Savings                      │
+│                    Measured Token Savings                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│   Total commands:    87                                          │
-│   Input chars:       472.8K                                      │
-│   Output chars:      30.2K                                       │
-│   Chars saved:       442.5K (93.6%)  ≈ 110K tokens              │
+│   Total commands:    924                                         │
+│   Input tokens:      9.0M                                        │
+│   Output tokens:     420.6K                                      │
+│   Tokens saved:      8.6M (95.3%)                                │
 │                                                                  │
-│   Efficiency: ███████████████████████░░  93.6%                   │
+│   Efficiency: ████████████████████████░  95.3%                   │
 │                                                                  │
 ├─────────────────────────────────────────────────────────────────┤
-│   tasklist ×12        310.6K saved    (98.6% reduction)         │
-│   Get-Process ×1       38.7K saved    (99.5% reduction)         │
-│   Get-Service ×1       22.2K saved    (99.4% reduction)         │
-│   ipconfig ×12         19.4K saved    (91.7% reduction)         │
-│   env ×3               12.1K saved    (56.6% reduction)         │
-│   systeminfo ×2        11.2K saved    (98.3% reduction)         │
-│   netstat -an ×1        7.1K saved    (96.1% reduction)         │
-│   git status ×16        5.0K saved    (72.6% reduction)         │
-│   grep -r ×1            4.0K saved    (72.5% reduction)         │
-│   ping ×11              3.4K saved    (91.9% reduction)         │
+│   find (recursive) ×2     6.4M saved    (99.9% reduction)        │
+│   tasklist ×12          310.6K saved    (98.6% reduction)        │
+│   grep -r ×1            139.2K saved    (97.5% reduction)        │
+│   find (deep) ×3        193.9K saved    (97.1% reduction)        │
+│   find -maxdepth 3 ×1    58.6K saved    (98.3% reduction)        │
+│   find (compact) ×3     130.1K saved    (96.5% reduction)        │
+│   find (small) ×1        42.1K saved    (97.9% reduction)        │
+│   Get-Process ×1         38.7K saved    (99.5% reduction)        │
+│   Get-Service ×1         22.2K saved    (99.4% reduction)        │
+│   ipconfig ×12           19.4K saved    (91.7% reduction)        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-> **Note**: Savings are measured in **characters** (not raw tokens). Real token savings ≈ chars ÷ 4 for English/code text.
+> **Note**: Numbers from real `wtk gain` over 30 days, 9 active days, 924 commands.
+> `find` recursive scans dominate — single Unix-style recursive find on a large tree saves 60K-3M+ tokens each.
 > PowerShell cmdlets like `Get-Process` and `Get-Service` show 99%+ reduction due to their extremely verbose default output.
 
 ---
@@ -378,29 +379,39 @@ wtk discover
 ## Gain Graph
 
 ```
-$ wtk gain --graph -T 7d
+$ wtk gain --graph
 
-WTK Token Savings - Last 7 Days
+📈 WTK Token Savings - Last 30 Days
 ════════════════════════════════════════════════════════════
 
- 136.7K │ ████████████████████████████████
-        │ ████████████████████████████████
- 102.5K │ ████████████████████████████████
-        │ ████████████████████████████████
-  68.3K │ ████████████████████████████████
-        │ ████████████████████████████████
-  34.2K │ ████████████████████████████████
-        │ ████████████████████████████████
-       0│────────────────────────────────
-         04-10                       04-16
+    6.9M │           ██
+         │           ██
+    5.2M │           ██
+         │           ██
+         │           ██
+    3.5M │           ██
+         │           ██
+         │           ██
+    1.7M │           ██
+         │           ██
+         │           ██
+       0 │ ▄▄    ▄▄  ██
+         └───────────────────
+           04-16        04-27
 
-Summary (Last 7 Days)
-────────────────────────────────────
-  Total saved:     136.7K
-  Commands:        23
-  Avg efficiency:  96.8%
+📊 Summary (Last 30 Days)
+──────────────────────────────────────────────────
+  Period:          Last 30 Days
+  Days with data:  9
+  Total saved:     8.6M
+  Total input:     9.0M
+  Commands:        925
+  Avg efficiency:  95.3%
 
-Periods: -T 1d | -T 7d | -T 30d | -T 90d | -T 1y | -T all
+  Efficiency: ████████████████████████░  95.3%
+
+📅 Other periods:
+  → -T 1d (24h) | -T 7d (week) | -T 90d (3 months) | -T all
 ```
 
 ---
@@ -555,6 +566,19 @@ Inspired by [RTK (Rust Token Killer)](https://github.com/rtk-ai/rtk).
 ---
 
 ## Changelog
+
+### v0.7.0 (2026-04-27)
+
+**✨ Features**
+- **filters**: Add `grep` / `rg` / `ripgrep` filter — group matches by file, configurable context
+- **filters**: Add `find` / `fd` / `fdfind` filter — group results by directory, compact listings
+- **filters**: Add `env` / `printenv` filter — hide system vars, mask `*_KEY` / `*_SECRET` / `*_TOKEN`, format PATH
+
+**📊 Real-World Stats**
+- 924 commands tracked, 8.6M tokens saved, 95.3% avg efficiency
+- Recursive `find` scans top savers (60K–6.4M tokens per call)
+
+---
 
 ### v0.6.1 (2026-04-19)
 

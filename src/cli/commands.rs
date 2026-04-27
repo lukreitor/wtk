@@ -176,13 +176,17 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
             println!();
             let approx_tokens = stats.total_saved / 4;
             println!("  Total commands:    {}", format_number(stats.total_commands).cyan());
-            println!("  Input chars:       {}", format_tokens(stats.total_input).yellow());
-            println!("  Output chars:      {}", format_tokens(stats.total_output).green());
+            println!("  Input chars:       {}", format_count(stats.total_input).yellow());
+            println!("  Output chars:      {}", format_count(stats.total_output).green());
             println!(
-                "  Chars saved:       {} ({:.1}%)  ≈ {} tokens",
-                format_tokens(stats.total_saved).bright_green(),
-                stats.percent,
-                format_tokens(approx_tokens).bright_cyan()
+                "  Chars saved:       {} ({:.1}%)",
+                format_count(stats.total_saved).bright_green(),
+                stats.percent
+            );
+            println!(
+                "  Est. tokens saved: ~{} {}",
+                format_count(approx_tokens).bright_cyan(),
+                "(heuristic: chars÷4, ASCII English)".dimmed()
             );
             println!();
             println!("  {}", render_efficiency_bar(stats.percent));
@@ -214,7 +218,7 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
                         "  {:30}  {:>5}  {:>8}  {}",
                         truncate(&cmd.command, 30),
                         cmd.count,
-                        format_tokens(cmd.saved_chars),
+                        format_count(cmd.saved_chars),
                         pct_colored
                     );
                 }
@@ -223,7 +227,7 @@ pub fn show_gain(options: GainOptions) -> Result<()> {
                     "  {:30}  {:>5}  {:>8}  {:.1}%",
                     "TOTAL".bold(),
                     stats.total_commands,
-                    format_tokens(stats.total_saved).bright_green(),
+                    format_count(stats.total_saved).bright_green(),
                     stats.percent
                 );
             }
@@ -268,13 +272,13 @@ fn show_gain_graph(db: &TrackingDb, days: u32, period: &str) -> Result<()> {
 
         // Y-axis label - show more labels
         if row == graph_height - 1 {
-            print!("{:>8} │ ", format_tokens(max_saved).cyan());
+            print!("{:>8} │ ", format_count(max_saved).cyan());
         } else if row == (graph_height * 3) / 4 {
-            print!("{:>8} │ ", format_tokens(three_quarter_value).dimmed());
+            print!("{:>8} │ ", format_count(three_quarter_value).dimmed());
         } else if row == graph_height / 2 {
-            print!("{:>8} │ ", format_tokens(mid_value).dimmed());
+            print!("{:>8} │ ", format_count(mid_value).dimmed());
         } else if row == graph_height / 4 {
-            print!("{:>8} │ ", format_tokens(quarter_value).dimmed());
+            print!("{:>8} │ ", format_count(quarter_value).dimmed());
         } else if row == 0 {
             print!("{:>8} │ ", "0".dimmed());
         } else {
@@ -330,8 +334,8 @@ fn show_gain_graph(db: &TrackingDb, days: u32, period: &str) -> Result<()> {
     println!("{}", "─".repeat(50));
     println!("  Period:          {}", label.cyan());
     println!("  Days with data:  {}", daily.len().to_string().cyan());
-    println!("  Total saved:     {}", format_tokens(total_saved).bright_green());
-    println!("  Total input:     {}", format_tokens(total_input).yellow());
+    println!("  Chars saved:     {}", format_count(total_saved).bright_green());
+    println!("  Input chars:     {}", format_count(total_input).yellow());
     println!("  Commands:        {}", format_number(total_commands).cyan());
     println!("  Avg efficiency:  {}%", format!("{:.1}", avg_percent).bright_green());
     println!();
@@ -412,7 +416,7 @@ fn show_gain_history(db: &TrackingDb, limit: usize, days: u32, period: &str) -> 
             "  {}  {:28}  {:>8}  {}  {:>8}",
             time.dimmed(),
             truncate(&entry.command, 28),
-            format_tokens(saved),
+            format_count(saved),
             pct_colored,
             filter_short.dimmed()
         );
@@ -430,7 +434,7 @@ fn show_gain_history(db: &TrackingDb, limit: usize, days: u32, period: &str) -> 
         "  {:19}  {:28}  {:>8}  {:.1}%",
         "",
         format!("TOTAL ({} commands)", history.len()).bold(),
-        format_tokens(total_saved).bright_green(),
+        format_count(total_saved).bright_green(),
         avg_percent
     );
     println!();
@@ -553,7 +557,7 @@ pub fn discover() -> Result<()> {
             "  {:25}  {:>8}  {:>15}",
             cmd,
             count.to_string().cyan(),
-            format_tokens(est_savings).green()
+            format_count(est_savings).green()
         );
     }
 
@@ -566,7 +570,7 @@ pub fn discover() -> Result<()> {
         "  {:25}  {:>8}  {:>15}",
         "TOTAL".bold(),
         total_commands.to_string().cyan(),
-        format_tokens(total_estimated_savings).bright_green()
+        format_count(total_estimated_savings).bright_green()
     );
     println!();
 
@@ -619,7 +623,7 @@ fn execute_raw(command: &str, args: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn format_tokens(n: usize) -> String {
+fn format_count(n: usize) -> String {
     if n >= 1_000_000 {
         format!("{:.1}M", n as f64 / 1_000_000.0)
     } else if n >= 1_000 {
